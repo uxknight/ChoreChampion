@@ -1,12 +1,17 @@
 {
-  "name": "cc-scaffold",
-  "version": "0.1.0",
+  "name": "chore-champions",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "db:reset": "supabase db reset",
+    "db:start": "supabase start",
+    "test:db": "bash supabase/tests/run.sh",
+    "import": "node scripts/import-prototype.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

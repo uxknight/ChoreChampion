@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Supabase CLI generated files (SQL project + transient runtime secrets).
+    "supabase/**",
   ]),
 ]);
 
