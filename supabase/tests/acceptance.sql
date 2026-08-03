@@ -362,4 +362,24 @@ begin
   perform _ok(ok, 'a kid cannot award bonus points');
 end $$;
 
+-- =====================================================================
+-- Test 14: cancel a claimed chore (frees it); can't cancel once submitted
+-- =====================================================================
+do $$
+declare ch uuid; c1 completions; ok boolean;
+begin
+  select id into ch from chores where family_id=_fam() and freq='weekly' and base_pts=3 limit 1;
+  delete from completions where chore_id=ch;
+  perform _login(_uvera());
+  c1 := claim_chore(ch);
+  perform cancel_claim(c1.id);
+  perform _ok((select count(*) from completions where id=c1.id) = 0, 'cancel removes the claim');
+
+  -- re-claim, mark done, then cancel must fail (already submitted)
+  c1 := claim_chore(ch);
+  c1 := mark_done(c1.id);
+  begin perform cancel_claim(c1.id); ok:=false; exception when others then ok:=true; end;
+  perform _ok(ok, 'cannot cancel a chore already marked Done');
+end $$;
+
 select '========== ALL ACCEPTANCE TESTS PASSED ==========' as result;

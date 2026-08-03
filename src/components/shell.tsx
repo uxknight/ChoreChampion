@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useApp } from "@/components/provider";
-import { ChoreList } from "@/components/choreList";
+import { ChoreList, InProgress } from "@/components/choreList";
 import { AdminView } from "@/components/admin";
 import * as api from "@/lib/api";
 import { money as fmtMoney, starStr } from "@/lib/format";
@@ -181,7 +181,6 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
     }
   }
   const cs = cartoonStatus(snap);
-  const pend = snap.completions.filter((e) => e.kid_id === kid.id && e.status === "pending").length;
   const ratedWk = snap.completions.filter(
     (e) => e.kid_id === kid.id && e.status === "rated" && e.week_key === snap.weekKey
   );
@@ -276,14 +275,7 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
         </div>
       )}
 
-      {pend > 0 && (
-        <div className="card">
-          <h3>⏳ Waiting for quality check</h3>
-          <div className="muted">
-            {pend} chore{pend > 1 ? "s" : ""} waiting for a parent to rate. Points land after rating!
-          </div>
-        </div>
-      )}
+      {checked && <InProgress />}
 
       {checked && (
         <div className="card reveal">

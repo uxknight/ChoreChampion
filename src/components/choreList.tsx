@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useApp } from "@/components/provider";
-import { claimChore, markDone, friendlyError } from "@/lib/api";
+import { claimChore, markDone, cancelClaim, friendlyError } from "@/lib/api";
 import { FREQ_LABEL, half, starStr } from "@/lib/format";
 import type { ChoreWithEntries } from "@/lib/types";
 
@@ -10,20 +10,24 @@ function activeThisWeek(c: ChoreWithEntries, biweeklyOn: boolean) {
   return c.freq !== "biweekly" || biweeklyOn;
 }
 
+// ---- available chores (not yet accepted by this kid) ----------------------
 export function ChoreList({ scope }: { scope: "today" | "weekly" }) {
-  const { snap, selectedKid, run, burst, toast, refresh } = useApp();
+  const { snap, selectedKid, burst, toast, refresh } = useApp();
   const [pulse, setPulse] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const kidById = (id: string) => snap.kids.find((k) => k.id === id);
   const mult = snap.settings.mult as number[];
 
   const chores = snap.chores.filter((c) => {
     if (!activeThisWeek(c, snap.biweeklyOn)) return false;
-    if (scope === "today") return c.freq === "daily" || c.freq === "twice_daily" || c.freq === "ondemand";
-    return c.freq === "weekly" || c.freq === "biweekly";
+    const inScope = scope === "today" ? c.freq === "daily" || c.freq === "twice_daily" || c.freq === "ondemand" : c.freq === "weekly" || c.freq === "biweekly";
+    if (!inScope) return false;
+    // hide chores this kid is already on (they live in the "You're on it" section)
+    const mine = (c.period_entries || []).find((e) => e.kid_id === selectedKid);
+    if (mine && (mine.status === "claimed" || mine.status === "pending")) return false;
+    return true;
   });
 
-  if (!chores.length) return <div className="muted">No chores here yet.</div>;
+  if (!chores.length) return <div className="muted">Nothing up for grabs right now.</div>;
 
   async function onIt(e: React.MouseEvent, choreId: string) {
     setPulse(choreId);
@@ -45,102 +49,106 @@ export function ChoreList({ scope }: { scope: "today" | "weekly" }) {
         const entries = c.period_entries || [];
         const used = entries.length;
         const limit = c.freq === "twice_daily" ? 2 : 1;
-        const mine = entries.find((e) => e.kid_id === selectedKid);
+        const mine = entries.find((e) => e.kid_id === selectedKid); // only 'rated' possible here
         const others = entries.filter((e) => e.kid_id !== selectedKid);
         const nodes: React.ReactNode[] = [];
 
-        if (c.description) {
-          nodes.push(
-            <button
-              key="help"
-              className="help-btn"
-              aria-label="What’s this chore?"
-              onClick={() => setInfo(info === c.id ? null : c.id)}
-            >
-              ?
-            </button>
-          );
-        }
-
-        // other kids' status on this chore (informational)
         others.forEach((e) => {
           const who = kidById(e.kid_id);
           if (e.status === "rated")
-            nodes.push(
-              <span key={e.id} className="chip green">
-                {starStr(e.stars)} {who?.name} +{e.earned}
-              </span>
-            );
+            nodes.push(<span key={e.id} className="chip green">{starStr(e.stars)} {who?.name} +{e.earned}</span>);
           else if (e.status === "pending")
-            nodes.push(
-              <span key={e.id} className="chip orange">
-                ⏳ {who?.name} — quality check
-              </span>
-            );
-          else
-            nodes.push(
-              <span key={e.id} className="chip claimed">
-                🙌 {who?.name} is on it
-              </span>
-            );
+            nodes.push(<span key={e.id} className="chip orange">⏳ {who?.name} — quality check</span>);
+          else nodes.push(<span key={e.id} className="chip claimed">🙌 {who?.name} is on it</span>);
         });
 
-        // exactly one control for the current kid
-        if (mine) {
-          if (mine.status === "claimed")
-            nodes.push(
-              <button
-                key="done"
-                className="btn green small"
-                onClick={(e) =>
-                  run(() => markDone(mine.id, selectedKid), "Nice! Waiting for a parent quality check 🔍", e, ["✅", "🎉", "⭐", "💪"])
-                }
-              >
-                Done ✓
-              </button>
-            );
-          else if (mine.status === "pending")
-            nodes.push(
-              <span key="mine" className="chip orange">
-                ⏳ You — quality check
-              </span>
-            );
-          else
-            nodes.push(
-              <span key="mine" className="chip green">
-                {starStr(mine.stars)} You +{mine.earned}
-              </span>
-            );
-        } else if (used < limit) {
+        if (mine && mine.status === "rated")
+          nodes.push(<span key="mine" className="chip green">{starStr(mine.stars)} You +{mine.earned}</span>);
+        if (used < limit)
           nodes.push(
             <button key="onit" className="btn small onit" onClick={(e) => onIt(e, c.id)}>
               On it! ✋
             </button>
           );
-        }
 
         return (
-          <div className="chore-wrap" key={c.id}>
-            <div className={"chore" + (c.freq === "ondemand" ? " hotspot" : "") + (pulse === c.id ? " claiming" : "")}>
-              <div className="ptbadge">
-                <b>{c.base_pts}</b>
-                <span>pts</span>
-              </div>
-              <span className="cem">{c.emoji || "🧩"}</span>
-              <div className="grow" onClick={() => c.description && setInfo(info === c.id ? null : c.id)} style={c.description ? { cursor: "pointer" } : undefined}>
-                <div className="ttl">{c.title}</div>
-                <div className="meta">
-                  {FREQ_LABEL[c.freq]} · <b style={{ color: "var(--brand)" }}>★★★ pays {half(c.base_pts * mult[2])}</b>
-                </div>
-              </div>
-              <div className="row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {nodes}
+          <div className={"chore" + (c.freq === "ondemand" ? " hotspot" : "") + (pulse === c.id ? " claiming" : "")} key={c.id}>
+            <div className="ptbadge">
+              <b>{c.base_pts}</b>
+              <span>pts</span>
+            </div>
+            <span className="cem">{c.emoji || "🧩"}</span>
+            <div className="grow">
+              <div className="ttl">{c.title}</div>
+              <div className="meta">
+                {FREQ_LABEL[c.freq]} · <b style={{ color: "var(--brand)" }}>★★★ pays {half(c.base_pts * mult[2])}</b>
               </div>
             </div>
-            {info === c.id && c.description && <div className="chore-desc">{c.description}</div>}
+            <div className="row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {nodes}
+            </div>
           </div>
         );
       })}
     </>
+  );
+}
+
+// ---- "You're on it" — chores this kid has accepted (claimed/pending) -------
+export function InProgress() {
+  const { snap, selectedKid, run, toast, refresh } = useApp();
+  const items: { c: ChoreWithEntries; e: ChoreWithEntries["period_entries"][number] }[] = [];
+  snap.chores.forEach((c) => {
+    (c.period_entries || []).forEach((e) => {
+      if (e.kid_id === selectedKid && (e.status === "claimed" || e.status === "pending")) items.push({ c, e });
+    });
+  });
+  if (!items.length) return null;
+
+  async function doCancel(completionId: string) {
+    try {
+      await cancelClaim(completionId, selectedKid);
+      toast("Released — back up for grabs.");
+      await refresh();
+    } catch (err) {
+      toast(friendlyError(err));
+    }
+  }
+
+  return (
+    <div className="card">
+      <h3>🙌 You’re on it</h3>
+      {items.map(({ c, e }) => (
+        <div className="chore-wrap" key={e.id}>
+          <div className="chore" style={{ borderBottom: "none" }}>
+            <div className="ptbadge">
+              <b>{c.base_pts}</b>
+              <span>pts</span>
+            </div>
+            <span className="cem">{c.emoji || "🧩"}</span>
+            <div className="grow">
+              <div className="ttl">{c.title}</div>
+              <div className="meta">{FREQ_LABEL[c.freq]}</div>
+            </div>
+            {e.status === "claimed" ? (
+              <div className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
+                <button className="btn ghost tiny" onClick={() => doCancel(e.id)}>
+                  Cancel
+                </button>
+                <button
+                  className="btn green small"
+                  onClick={(ev) => run(() => markDone(e.id, selectedKid), "Nice! Waiting for a parent quality check 🔍", ev, ["✅", "🎉", "⭐", "💪"])}
+                >
+                  Done ✓
+                </button>
+              </div>
+            ) : (
+              <span className="chip orange">⏳ Waiting for a parent</span>
+            )}
+          </div>
+          {c.description && <div className="chore-desc">{c.description}</div>}
+        </div>
+      ))}
+    </div>
   );
 }
