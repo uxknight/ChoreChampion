@@ -112,6 +112,7 @@ export const allocateToGoal = (goalId: string, amount: number) =>
 export const finishGoal = (goalId: string) => rpc("finish_goal", { p_goal_id: goalId });
 
 // ---- parent actions ----
+export const adminCancelCompletion = (completionId: string) => rpc("admin_cancel_completion", { p_completion_id: completionId });
 export const rate = (completionId: string, stars: number) =>
   rpc<{ earned: number; stars: number; streak_bonus: number; kid_id: string }>("rate_completion", { p_completion_id: completionId, p_stars: stars });
 export const applyDeduction = (ruleId: string) => rpc<Record<string, number>>("apply_deduction", { p_rule_id: ruleId });

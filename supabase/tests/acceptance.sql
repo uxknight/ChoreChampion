@@ -402,4 +402,32 @@ begin
   perform _ok(ok, 'a kid cannot award points');
 end $$;
 
+-- =====================================================================
+-- Test 16: parent cancels a pending completion; can't cancel a rated one
+-- =====================================================================
+do $$
+declare ch uuid; c1 completions; ok boolean;
+begin
+  select id into ch from chores where family_id=_fam() and freq='weekly' and base_pts=2 limit 1;
+  delete from completions where chore_id=ch;
+  perform _login(_uvera());
+  c1 := claim_chore(ch);
+  c1 := mark_done(c1.id);                 -- now pending
+  perform _login(_upar());
+  perform admin_cancel_completion(c1.id);
+  perform _ok((select count(*) from completions where id=c1.id) = 0, 'parent cancels a pending completion');
+
+  -- a rated completion cannot be cancelled
+  c1 := (select null::completions);
+  perform _login(_uvera()); c1 := claim_chore(ch); c1 := mark_done(c1.id);
+  perform _login(_upar()); perform rate_completion(c1.id, 2);
+  begin perform admin_cancel_completion(c1.id); ok:=false; exception when others then ok:=true; end;
+  perform _ok(ok, 'cannot cancel a rated completion');
+
+  -- a kid cannot use the admin cancel
+  perform _login(_uvera());
+  begin perform admin_cancel_completion(c1.id); ok:=false; exception when others then ok:=true; end;
+  perform _ok(ok, 'a kid cannot admin-cancel a completion');
+end $$;
+
 select '========== ALL ACCEPTANCE TESTS PASSED ==========' as result;

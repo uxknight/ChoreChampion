@@ -186,6 +186,17 @@ export function AdminView() {
                       {k?.emoji} {k?.name} · {e.occurred_on} · base {e.pts_snapshot} pts
                     </div>
                   </div>
+                  <button
+                    className="btn ghost tiny"
+                    onClick={async () =>
+                      (await confirm(`Cancel "${e.title_snapshot}"? It won't count and no points are awarded.`, {
+                        confirmLabel: "Cancel task",
+                        danger: true,
+                      })) && run(() => api.adminCancelCompletion(e.id), "Task cancelled")
+                    }
+                  >
+                    ✕ Cancel
+                  </button>
                 </div>
                 <div className="ratebtns">
                   {[1, 2, 3].map((st) => (
