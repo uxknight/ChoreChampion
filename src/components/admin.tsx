@@ -1,12 +1,12 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/provider";
 import { FormModal, type Field } from "@/components/modal";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import * as api from "@/lib/api";
 import { friendlyError } from "@/lib/api";
 import { money as fmtMoney, starStr, half } from "@/lib/format";
-import { FREQ_OPTIONS } from "@/lib/format";
+import { FREQ_OPTIONS, ANIMAL_EMOJIS, randomAnimal } from "@/lib/format";
 
 type ModalState =
   | { kind: "kid" }
@@ -394,6 +394,7 @@ function CatalogModal({
   onError: (e: unknown) => void;
 }) {
   const { snap, toast } = useApp();
+  const kidEmoji = useMemo(() => randomAnimal(), []); // stable random default per open
 
   if (modal.kind === "kid") {
     return (
@@ -401,7 +402,7 @@ function CatalogModal({
         title="Add a kid"
         fields={[
           { label: "Name", value: "" },
-          { label: "Emoji", value: "🦊" },
+          { label: "Pick an animal", emojis: ANIMAL_EMOJIS, value: kidEmoji },
           { label: "Color (hex)", value: "#7c5cff" },
           {
             label: "Track",

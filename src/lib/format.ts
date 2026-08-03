@@ -17,6 +17,16 @@ export const FREQ_LABEL: Record<string, string> = {
   ondemand: "🔔 hotspot — live now!",
 };
 
+// Animal emojis offered when picking a kid's avatar.
+export const ANIMAL_EMOJIS = [
+  "🦊", "🐯", "🐱", "🐶", "🐰", "🐻", "🐼", "🐨", "🦁", "🐮",
+  "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🐤", "🦄", "🐝", "🦋",
+  "🐙", "🦈", "🐬", "🐢", "🦉", "🦕", "🦖", "🐳", "🦒", "🦓",
+  "🦔", "🦦", "🦥", "🐺", "🐗", "🐴", "🦇", "🦩", "🦜", "🐛",
+];
+
+export const randomAnimal = () => ANIMAL_EMOJIS[Math.floor(Math.random() * ANIMAL_EMOJIS.length)];
+
 export const FREQ_OPTIONS = [
   { v: "twice_daily", t: "Twice a day" },
   { v: "daily", t: "Daily" },
