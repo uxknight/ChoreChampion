@@ -13,6 +13,7 @@ type ModalState =
   | { kind: "chore"; id?: string }
   | { kind: "deduction"; id?: string }
   | { kind: "bonus"; id?: string }
+  | { kind: "award" }
   | { kind: "reward"; id?: string }
   | { kind: "ellie"; id?: string }
   | { kind: "settings" }
@@ -277,9 +278,21 @@ export function AdminView() {
             </button>
           </div>
         ))}
-        <button className="btn ghost small" style={{ marginTop: 8 }} onClick={() => setModal({ kind: "bonus" })}>
-          ＋ Add achievement
-        </button>
+        <div className="row" style={{ marginTop: 8, gap: 8, flexWrap: "wrap" }}>
+          <button className="btn ghost small" onClick={() => setModal({ kind: "bonus" })}>
+            ＋ Add achievement
+          </button>
+          <button
+            className="btn green small"
+            disabled={!selKid || selKid.mode !== "points"}
+            onClick={() => {
+              if (!selKid || selKid.mode !== "points") return toast("Pick a points kid at the top first.");
+              setModal({ kind: "award" });
+            }}
+          >
+            🎁 Give {selKid && selKid.mode === "points" ? selKid.name : "points"} points
+          </button>
+        </div>
       </div>
 
       {/* tally */}
@@ -445,7 +458,7 @@ function CatalogModal({
   afterSave: () => Promise<void>;
   onError: (e: unknown) => void;
 }) {
-  const { snap, toast } = useApp();
+  const { snap, toast, selectedKid } = useApp();
   const kidEmoji = useMemo(() => randomAnimal(), []); // stable random defaults per open
   const kidColor = useMemo(() => randomColor(), []);
 
@@ -535,6 +548,30 @@ function CatalogModal({
           if (!v[0] || !(Number(v[1]) > 0)) return toast("Need a description and points.");
           try {
             await api.upsertDeduction({ id: modal.id, title: String(v[0]), pts: Number(v[1]), family_id: familyId });
+            await afterSave();
+          } catch (e) {
+            onError(e);
+          }
+        }}
+      />
+    );
+  }
+
+  if (modal.kind === "award") {
+    const k = snap.kids.find((x) => x.id === selectedKid);
+    return (
+      <FormModal
+        title={`Give ${k?.name ?? "kid"} points`}
+        fields={[
+          { label: "Points to give", type: "number", step: "0.5", value: 1 },
+          { label: "Reason (optional, e.g. Was extra kind)", value: "" },
+        ]}
+        onCancel={onClose}
+        onSave={async (v) => {
+          if (!k) return toast("Pick a points kid at the top first.");
+          if (!(Number(v[0]) > 0)) return toast("Enter how many points to give.");
+          try {
+            await api.awardPoints(k.id, Number(v[0]), String(v[1]));
             await afterSave();
           } catch (e) {
             onError(e);

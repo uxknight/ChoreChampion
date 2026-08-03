@@ -382,4 +382,24 @@ begin
   perform _ok(ok, 'cannot cancel a chore already marked Done');
 end $$;
 
+-- =====================================================================
+-- Test 15: parent manually awards points to a kid; kids cannot
+-- =====================================================================
+do $$
+declare res jsonb; ok boolean;
+begin
+  update profiles set week=0 where id=_pvera();
+  perform _login(_upar());
+  res := award_points(_pvera(), 5, 'Was extra kind');
+  perform _ok((res->>'pts')::numeric = 5, 'award_points returns the amount');
+  perform _ok((select week from profiles where id=_pvera()) = 5, 'award_points adds to the kid''s week');
+  perform _ok((select count(*) from bonus_events where kid_id=_pvera() and title='Was extra kind') = 1, 'award_points logs a bonus event with the reason');
+
+  begin perform award_points(_pvera(), 0); ok:=false; exception when others then ok:=true; end;
+  perform _ok(ok, 'award_points rejects a non-positive amount');
+  perform _login(_uvera());
+  begin perform award_points(_pvera(), 5); ok:=false; exception when others then ok:=true; end;
+  perform _ok(ok, 'a kid cannot award points');
+end $$;
+
 select '========== ALL ACCEPTANCE TESTS PASSED ==========' as result;

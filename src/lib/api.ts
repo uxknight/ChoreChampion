@@ -117,6 +117,8 @@ export const rate = (completionId: string, stars: number) =>
 export const applyDeduction = (ruleId: string) => rpc<Record<string, number>>("apply_deduction", { p_rule_id: ruleId });
 export const awardBonus = (ruleId: string, kidId: string) =>
   rpc<{ title: string; pts: number; kid_id: string }>("award_bonus", { p_rule_id: ruleId, p_kid_id: kidId });
+export const awardPoints = (kidId: string, amount: number, reason: string) =>
+  rpc<{ title: string; pts: number; kid_id: string }>("award_points", { p_kid_id: kidId, p_amount: amount, p_reason: reason });
 export const roomCheck = () => rpc<{ bonus: boolean; bonus_pts: number }>("room_check");
 export const runTally = () => rpc<{ ran: boolean; week_key: string }>("run_tally");
 export const toggleHotspot = (choreId: string) => rpc<boolean>("toggle_hotspot", { p_chore_id: choreId });
