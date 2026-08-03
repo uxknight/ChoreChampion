@@ -10,7 +10,9 @@ const sb = () => supabaseBrowser();
 
 // Friendly messages for the exceptions raised by the RPCs.
 const ERROR_MESSAGES: Record<string, string> = {
-  chore_period_full: "Already done for now!",
+  chore_period_full: "Someone’s already on it!",
+  not_your_claim: "Only the kid who’s on it can mark it done.",
+  not_claimed: "That chore isn’t claimed yet.",
   hotspot_not_active: "That hotspot isn’t live right now.",
   not_biweekly_week: "That’s a next-week chore.",
   kid_only: "Only a kid device can do that.",
@@ -52,6 +54,7 @@ type RawSnapshot = {
   rewards: FamilySnapshot["rewards"];
   ellie_rewards: FamilySnapshot["ellieRewards"];
   deductions: FamilySnapshot["deductions"];
+  deduction_events: FamilySnapshot["deductionEvents"];
   goals: FamilySnapshot["goals"];
   redemptions: FamilySnapshot["redemptions"];
   completions: FamilySnapshot["completions"];
@@ -79,6 +82,7 @@ export async function loadSnapshot(): Promise<FamilySnapshot | null> {
     rewards: r.rewards ?? [],
     ellieRewards: r.ellie_rewards ?? [],
     deductions: r.deductions ?? [],
+    deductionEvents: r.deduction_events ?? [],
     goals: r.goals ?? [],
     redemptions: r.redemptions ?? [],
     completions: r.completions ?? [],
@@ -92,6 +96,7 @@ export async function loadSnapshot(): Promise<FamilySnapshot | null> {
 // ---- kid actions (p_kid_id is honored only for a parent session) ----
 export const checkIn = (kidId: string) => rpc("check_in", { p_kid_id: kidId });
 export const claimChore = (choreId: string, kidId: string) => rpc("claim_chore", { p_chore_id: choreId, p_kid_id: kidId });
+export const markDone = (completionId: string, kidId: string) => rpc("mark_done", { p_completion_id: completionId, p_kid_id: kidId });
 export const redeemReward = (rewardId: string, kidId: string) => rpc<{ title: string; cost: number }>("redeem_reward", { p_reward_id: rewardId, p_kid_id: kidId });
 export const startGoal = (rewardId: string, kidId: string) => rpc("start_goal", { p_reward_id: rewardId, p_kid_id: kidId });
 export const allocateToGoal = (goalId: string, amount: number) =>

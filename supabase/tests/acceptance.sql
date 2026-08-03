@@ -141,7 +141,7 @@ begin
   perform _login(_upar()); perform toggle_hotspot(hs);            -- arm it
   perform _ok((select active from chores where id=hs)=true, 'parent can arm a hotspot');
   perform _login(_uvera()); comp := claim_chore(hs);
-  perform _ok(comp.status='pending', 'hotspot claim enters pending review');
+  perform _ok(comp.status='claimed', 'hotspot On-it creates a claim');
   perform _ok((select active from chores where id=hs)=false, 'hotspot disarms after being claimed');
 end $$;
 
@@ -173,21 +173,34 @@ end $$;
 -- Test 7: cartoon states none/pending/earned/missed
 -- =====================================================================
 do $$
-declare k uuid; c uuid; ch uuid;
+declare d date := app_today(); r record; i int; first_id uuid;
 begin
-  k := _pslav();
-  delete from completions where kid_id=k and occurred_on=app_today();
-  perform _ok(cartoon_status(k)='none', 'cartoon: none when no chores today');
-  select id into ch from chores where family_id=_fam() and freq='twice_daily' limit 1;
-  insert into completions(family_id,chore_id,kid_id,title_snapshot,pts_snapshot,occurred_on,week_key,status)
-    values(_fam(),ch,k,'t',1,app_today(),app_week_key(),'pending') returning id into c;
-  perform _ok(cartoon_status(k)='pending', 'cartoon: pending while a chore awaits rating');
-  perform _login(_upar()); perform rate_completion(c,3);
-  perform _ok(cartoon_status(k)='earned', 'cartoon: earned when all rated 3★');
-  insert into completions(family_id,chore_id,kid_id,title_snapshot,pts_snapshot,occurred_on,week_key,status)
-    values(_fam(),ch,k,'t',1,app_today(),app_week_key(),'pending') returning id into c;
-  perform rate_completion(c,2);
-  perform _ok(cartoon_status(k)='missed', 'cartoon: missed when not all 3★');
+  perform _login(_upar());
+  delete from completions where family_id=_fam() and occurred_on=d;
+  perform _ok(cartoon_status()='none', 'cartoon: none when no daily chores done');
+
+  -- one daily slot at 3★ is not enough — the whole daily board must be cleared
+  select id into first_id from chores
+    where family_id=_fam() and freq in ('daily','twice_daily') and deleted_at is null limit 1;
+  insert into completions(family_id,chore_id,kid_id,title_snapshot,pts_snapshot,occurred_on,week_key,status,stars,earned)
+    values(_fam(),first_id,_pvera(),'t',1,d,app_week_key(),'rated',3,1.5);
+  perform _ok(cartoon_status()='pending', 'cartoon: pending until ALL daily chores are done at 3★');
+
+  -- fill every daily slot (daily=1, twice_daily=2) at 3★ -> earned
+  delete from completions where family_id=_fam() and occurred_on=d;
+  for r in select id, (case when freq='twice_daily' then 2 else 1 end) as slots
+             from chores where family_id=_fam() and freq in ('daily','twice_daily') and deleted_at is null loop
+    for i in 1..r.slots loop
+      insert into completions(family_id,chore_id,kid_id,title_snapshot,pts_snapshot,occurred_on,week_key,status,stars,earned)
+        values(_fam(),r.id,_pvera(),'t',1,d,app_week_key(),'rated',3,1.5);
+    end loop;
+  end loop;
+  perform _ok(cartoon_status()='earned', 'cartoon: earned when every daily chore is done at 3★');
+
+  -- knock one down to 2★ -> a perfect day is no longer possible
+  update completions set stars=2
+    where id = (select id from completions where family_id=_fam() and occurred_on=d limit 1);
+  perform _ok(cartoon_status()='missed', 'cartoon: missed when any daily chore is under 3★');
 end $$;
 
 -- =====================================================================
@@ -255,6 +268,35 @@ begin
   end;
   reset role;
   perform _ok(denied, 'RLS blocks a kid from directly editing their point balance');
+end $$;
+
+-- =====================================================================
+-- Test 10: On it -> Done two-step; first claim locks others; only owner marks done
+-- =====================================================================
+do $$
+declare ch uuid; c1 completions; ok boolean; res jsonb;
+begin
+  select id into ch from chores where family_id=_fam() and freq='weekly' and base_pts=2 limit 1;
+  delete from completions where chore_id=ch;            -- clean slate
+  perform _login(_uvera());
+  c1 := claim_chore(ch);
+  perform _ok(c1.status='claimed', 'On it creates a claimed reservation');
+
+  begin perform _login(_uslav()); perform claim_chore(ch); ok:=false;   -- locked
+  exception when others then ok:=true; end;
+  perform _ok(ok, 'a second kid cannot claim a chore already on-it');
+
+  begin perform _login(_uslav()); perform mark_done(c1.id); ok:=false;  -- not owner
+  exception when others then ok:=true; end;
+  perform _ok(ok, 'only the claim owner can mark it done');
+
+  perform _login(_uvera());
+  c1 := mark_done(c1.id);
+  perform _ok(c1.status='pending', 'Done transitions the claim to pending review');
+
+  perform _login(_upar());
+  res := rate_completion(c1.id, 2);
+  perform _ok((res->>'earned')::numeric = 2, 'rating the done chore pays out');
 end $$;
 
 select '========== ALL ACCEPTANCE TESTS PASSED ==========' as result;

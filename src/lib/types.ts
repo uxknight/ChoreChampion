@@ -15,6 +15,15 @@ export type CartoonState = "none" | "pending" | "earned" | "missed";
 
 export type ChoreWithEntries = Chore & { period_entries: Completion[] };
 
+export type DeductionEvent = {
+  id: string;
+  title: string;
+  occurred_on: string;
+  week_key: string;
+  amounts: Record<string, number>;
+  created_at: string;
+};
+
 export type SnapshotViewer = {
   kind: "parent" | "kid";
   profileId: string | null;
@@ -35,6 +44,7 @@ export type FamilySnapshot = {
   rewards: Reward[];
   ellieRewards: EllieReward[];
   deductions: DeductionRule[];
+  deductionEvents: DeductionEvent[];
   goals: Goal[];
   redemptions: Redemption[];
   completions: Completion[];

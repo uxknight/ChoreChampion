@@ -1,6 +1,59 @@
 "use client";
 import React, { useState } from "react";
 
+// ---- imperative confirm/prompt dialogs (window.confirm/prompt are blocked in
+// the app's embedded browser, so we render our own) ----
+export type Dialog =
+  | { kind: "confirm"; message: string; confirmLabel: string; danger: boolean; resolve: (v: boolean) => void }
+  | { kind: "prompt"; message: string; value: string; confirmLabel: string; resolve: (v: number | null) => void };
+
+export function DialogHost({ dialog, onClose }: { dialog: Dialog; onClose: () => void }) {
+  const [val, setVal] = useState(dialog.kind === "prompt" ? dialog.value : "");
+  const cancel = () => {
+    if (dialog.kind === "confirm") dialog.resolve(false);
+    else dialog.resolve(null);
+    onClose();
+  };
+  const ok = () => {
+    if (dialog.kind === "confirm") dialog.resolve(true);
+    else {
+      const n = parseFloat(val);
+      dialog.resolve(Number.isFinite(n) ? n : null);
+    }
+    onClose();
+  };
+  return (
+    <div className="modal-bg" onClick={(e) => e.target === e.currentTarget && cancel()}>
+      <div className="modal">
+        <h3>{dialog.kind === "confirm" ? "Please confirm" : "How many points?"}</h3>
+        <div className="muted" style={{ marginBottom: 12, whiteSpace: "pre-line", fontSize: 14, lineHeight: 1.5 }}>
+          {dialog.message}
+        </div>
+        {dialog.kind === "prompt" && (
+          <div className="field">
+            <input
+              type="number"
+              step="0.5"
+              value={val}
+              autoFocus
+              onChange={(e) => setVal(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && ok()}
+            />
+          </div>
+        )}
+        <div className="row">
+          <button className="btn ghost grow" onClick={cancel}>
+            Cancel
+          </button>
+          <button className={"btn grow" + (dialog.kind === "confirm" && dialog.danger ? " red" : "")} onClick={ok}>
+            {dialog.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export type Field = {
   label: string;
   type?: "text" | "number";

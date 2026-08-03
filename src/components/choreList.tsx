@@ -1,7 +1,7 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useApp } from "@/components/provider";
-import { claimChore } from "@/lib/api";
+import { claimChore, markDone, friendlyError } from "@/lib/api";
 import { FREQ_LABEL, half, starStr } from "@/lib/format";
 import type { ChoreWithEntries } from "@/lib/types";
 
@@ -10,17 +10,33 @@ function activeThisWeek(c: ChoreWithEntries, biweeklyOn: boolean) {
   return c.freq !== "biweekly" || biweeklyOn;
 }
 
-export function ChoreList({ scope }: { scope: "today" | "week" }) {
-  const { snap, selectedKid, run } = useApp();
+export function ChoreList({ scope }: { scope: "today" | "weekly" }) {
+  const { snap, selectedKid, run, burst, toast, refresh } = useApp();
+  const [pulse, setPulse] = useState<string | null>(null);
   const kidById = (id: string) => snap.kids.find((k) => k.id === id);
+  const mult = snap.settings.mult as number[];
 
   const chores = snap.chores.filter((c) => {
     if (!activeThisWeek(c, snap.biweeklyOn)) return false;
     if (scope === "today") return c.freq === "daily" || c.freq === "twice_daily" || c.freq === "ondemand";
-    return true;
+    return c.freq === "weekly" || c.freq === "biweekly";
   });
 
   if (!chores.length) return <div className="muted">No chores here yet.</div>;
+
+  async function onIt(e: React.MouseEvent, choreId: string) {
+    setPulse(choreId);
+    burst(e, ["🙌", "✨", "💪"]);
+    try {
+      await claimChore(choreId, selectedKid);
+      toast("You’re on it! 💪");
+      await refresh();
+    } catch (err) {
+      toast(friendlyError(err));
+    } finally {
+      setTimeout(() => setPulse(null), 650);
+    }
+  }
 
   return (
     <>
@@ -28,51 +44,59 @@ export function ChoreList({ scope }: { scope: "today" | "week" }) {
         const entries = c.period_entries || [];
         const used = entries.length;
         const limit = c.freq === "twice_daily" ? 2 : 1;
-        const mult = snap.settings.mult as number[];
-        let right: React.ReactNode;
+        const nodes: React.ReactNode[] = [];
 
-        if (used >= limit) {
-          const last = entries[entries.length - 1];
-          const who = kidById(last.kid_id);
-          right =
-            last.status === "pending" ? (
-              <span className="chip orange">⏳ {who?.name} — quality check</span>
-            ) : (
-              <span className="chip green">
-                {starStr(last.stars)} {who?.name} +{last.earned}
+        entries.forEach((entry) => {
+          const who = kidById(entry.kid_id);
+          if (entry.status === "rated") {
+            nodes.push(
+              <span key={entry.id} className="chip green">
+                {starStr(entry.stars)} {who?.name} +{entry.earned}
               </span>
             );
-        } else {
-          const btn = (
-            <button
-              className="btn green small"
-              onClick={(e) =>
-                run(
-                  () => claimChore(c.id, selectedKid),
-                  "Nice! Waiting for a parent quality check 🔍",
-                  e,
-                  ["✅", "🎉", "⭐", "💪"]
-                )
-              }
-            >
-              Done! ✓
+          } else if (entry.status === "pending") {
+            nodes.push(
+              <span key={entry.id} className="chip orange">
+                ⏳ {who?.name} — quality check
+              </span>
+            );
+          } else {
+            // claimed reservation
+            if (entry.kid_id === selectedKid) {
+              nodes.push(
+                <button
+                  key={entry.id}
+                  className="btn green small"
+                  onClick={(e) =>
+                    run(() => markDone(entry.id, selectedKid), "Nice! Waiting for a parent quality check 🔍", e, ["✅", "🎉", "⭐", "💪"])
+                  }
+                >
+                  Done ✓
+                </button>
+              );
+            } else {
+              nodes.push(
+                <span key={entry.id} className="chip claimed">
+                  🙌 {who?.name} is on it
+                </span>
+              );
+            }
+          }
+        });
+
+        if (used < limit) {
+          nodes.push(
+            <button key="onit" className="btn small onit" onClick={(e) => onIt(e, c.id)}>
+              On it! ✋
             </button>
           );
-          right =
-            c.freq === "twice_daily" && used === 1 ? (
-              <>
-                <span className="chip green" style={{ marginRight: 6 }}>
-                  1/2 ✓
-                </span>
-                {btn}
-              </>
-            ) : (
-              btn
-            );
         }
 
         return (
-          <div className={"chore" + (c.freq === "ondemand" ? " hotspot" : "")} key={c.id}>
+          <div
+            className={"chore" + (c.freq === "ondemand" ? " hotspot" : "") + (pulse === c.id ? " claiming" : "")}
+            key={c.id}
+          >
             <div className="ptbadge">
               <b>{c.base_pts}</b>
               <span>pts</span>
@@ -81,11 +105,12 @@ export function ChoreList({ scope }: { scope: "today" | "week" }) {
             <div className="grow">
               <div className="ttl">{c.title}</div>
               <div className="meta">
-                {FREQ_LABEL[c.freq]} ·{" "}
-                <b style={{ color: "var(--brand)" }}>★★★ pays {half(c.base_pts * mult[2])}</b>
+                {FREQ_LABEL[c.freq]} · <b style={{ color: "var(--brand)" }}>★★★ pays {half(c.base_pts * mult[2])}</b>
               </div>
             </div>
-            {right}
+            <div className="row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {nodes}
+            </div>
           </div>
         );
       })}

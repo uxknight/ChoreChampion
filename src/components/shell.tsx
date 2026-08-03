@@ -7,11 +7,10 @@ import * as api from "@/lib/api";
 import { money as fmtMoney, starStr } from "@/lib/format";
 import type { CartoonState, Profile } from "@/lib/types";
 
-type Tab = "home" | "chores" | "rewards" | "rules" | "admin";
+type Tab = "home" | "rewards" | "rules" | "admin";
 
 const TABS: { id: Tab; ic: string; label: string; parentOnly?: boolean }[] = [
   { id: "home", ic: "🏠", label: "Home" },
-  { id: "chores", ic: "✅", label: "Chores" },
   { id: "rewards", ic: "🎁", label: "Rewards" },
   { id: "rules", ic: "📜", label: "Rules" },
   { id: "admin", ic: "🔒", label: "Admin", parentOnly: true },
@@ -73,8 +72,6 @@ export function AppShell() {
           <EllieHome kid={kid} money={money} />
         ) : tab === "home" ? (
           <Home key={kid.id} kid={kid} money={money} />
-        ) : tab === "chores" ? (
-          <Chores />
         ) : tab === "rewards" ? (
           <Rewards kid={kid} money={money} />
         ) : (
@@ -101,12 +98,19 @@ export function AppShell() {
   );
 }
 
-function cartoonStatus(snap: ReturnType<typeof useApp>["snap"], kidId: string): CartoonState {
-  const e = snap.completions.filter((c) => c.kid_id === kidId && c.occurred_on === snap.today);
-  if (!e.length) return "none";
-  if (e.some((x) => x.status === "pending")) return "pending";
-  if (e.every((x) => x.stars === 3)) return "earned";
-  return "missed";
+// Household-wide cartoon rule: cartoons unlock only when EVERY daily-chore slot
+// for the family is done and rated ★★★ (chores are shared, so it's a family goal).
+function cartoonStatus(snap: ReturnType<typeof useApp>["snap"]): CartoonState {
+  const dailyIds = new Set(snap.chores.filter((c) => c.freq === "daily" || c.freq === "twice_daily").map((c) => c.id));
+  const totalSlots = snap.chores
+    .filter((c) => dailyIds.has(c.id))
+    .reduce((n, c) => n + (c.freq === "twice_daily" ? 2 : 1), 0);
+  const entries = snap.completions.filter((e) => e.occurred_on === snap.today && dailyIds.has(e.chore_id));
+  if (totalSlots === 0 || entries.length === 0) return "none";
+  if (entries.some((e) => e.status === "rated" && e.stars < 3)) return "missed";
+  const rated3 = entries.filter((e) => e.status === "rated" && e.stars === 3).length;
+  if (rated3 >= totalSlots) return "earned";
+  return "pending";
 }
 
 function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
@@ -114,6 +118,7 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
   const s = snap.settings;
   const checked = snap.checkins.some((c) => c.kid_id === kid.id && c.occurred_on === snap.today);
   const [dissipating, setDissipating] = useState(false);
+  const myDeductions = snap.deductionEvents; // shared across all kids
 
   async function handleCheckIn(e: React.MouseEvent) {
     burst(e, ["👋", "☀️", "⭐"]);
@@ -126,7 +131,7 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
       toast(api.friendlyError(err));
     }
   }
-  const cs = cartoonStatus(snap, kid.id);
+  const cs = cartoonStatus(snap);
   const pend = snap.completions.filter((e) => e.kid_id === kid.id && e.status === "pending").length;
   const ratedWk = snap.completions.filter(
     (e) => e.kid_id === kid.id && e.status === "rated" && e.week_key === snap.weekKey
@@ -188,6 +193,24 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
         <b>{tv[cs]}</b>
       </div>
 
+      {myDeductions.length > 0 && (
+        <div className="card">
+          <h3>🏚️ Shared deductions this week</h3>
+          <div className="muted" style={{ marginBottom: 6 }}>
+            These hit <b>every kid</b> — protect each other!
+          </div>
+          {myDeductions.map((ev) => (
+            <div className="chore" key={ev.id}>
+              <div className="grow">
+                <div className="ttl">{ev.title}</div>
+                <div className="meta">{ev.occurred_on}</div>
+              </div>
+              <span className="chip red">−{ev.amounts[kid.id] ?? 0} pts</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {pend > 0 && (
         <div className="card">
           <h3>⏳ Waiting for quality check</h3>
@@ -199,8 +222,18 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
 
       {checked && (
         <div className="card reveal">
-          <h3>🎯 Up for grabs today</h3>
+          <h3>🎯 Today’s chores</h3>
           <ChoreList scope="today" />
+        </div>
+      )}
+
+      {checked && (
+        <div className="card reveal">
+          <h3>
+            🗓️ Weekly &amp; biweekly
+            {snap.biweeklyOn && <span className="chip gold"> ✨ bonus week</span>}
+          </h3>
+          <ChoreList scope="weekly" />
         </div>
       )}
 
@@ -228,38 +261,8 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
   );
 }
 
-function Chores() {
-  const { snap } = useApp();
-  const [view, setView] = useState<"today" | "week">("today");
-  return (
-    <>
-      <div className="seg">
-        <button className={view === "today" ? "active" : ""} onClick={() => setView("today")}>
-          Today
-        </button>
-        <button className={view === "week" ? "active" : ""} onClick={() => setView("week")}>
-          Whole week
-        </button>
-      </div>
-      <div className="card">
-        <h3>
-          {view === "today" ? "🎯 Today’s chores" : "🗓️ This week’s chores"}
-          {snap.biweeklyOn && <span className="chip gold"> ✨ bonus week — car chores live!</span>}
-        </h3>
-        <ChoreList scope={view} />
-      </div>
-      <div className="card">
-        <div className="muted">
-          First to tap <b>Done!</b> claims the points — but a parent rates the quality. ★ = half points, ★★
-          = full, ★★★ = 1.5× and feeds your 🔥 streak.
-        </div>
-      </div>
-    </>
-  );
-}
-
 function Rewards({ kid, money }: { kid: Profile; money: (p: number) => string }) {
-  const { snap, selectedKid, run, toast } = useApp();
+  const { snap, selectedKid, run, toast, confirm, promptNumber } = useApp();
   const goals = snap.goals.filter((g) => g.kid_id === kid.id && !g.done);
   const hist = snap.redemptions.filter((x) => x.kid_id === kid.id).slice(0, 5);
 
@@ -311,9 +314,12 @@ function Rewards({ kid, money }: { kid: Profile; money: (p: number) => string })
                     <>
                       <button
                         className="btn ghost small grow"
-                        onClick={() => {
-                          const raw = window.prompt(`How many banked points to add? (You have ${kid.bank})`, "10");
-                          const amt = parseFloat(raw ?? "");
+                        onClick={async () => {
+                          const amt = await promptNumber(
+                            `How many banked points to add toward ${g.title}? (You have ${kid.bank})`,
+                            Math.min(10, kid.bank),
+                            { confirmLabel: "Add" }
+                          );
                           if (!amt || amt <= 0) return;
                           run(() => api.allocateToGoal(g.id, amt), "Added toward " + g.title);
                         }}
@@ -356,10 +362,12 @@ function Rewards({ kid, money }: { kid: Profile; money: (p: number) => string })
                 <button
                   className="btn small"
                   disabled={!afford}
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     if (!afford) return toast("Not enough banked points yet — keep going!");
-                    if (!window.confirm(`Redeem "${r.title}" for ${r.cost_pts} pts (${money(r.cost_pts)})?`)) return;
-                    run(() => api.redeemReward(r.id, selectedKid), "Redeemed: " + r.title + " 🎁", e, ["🎁", "🎉", "💸"]);
+                    const pt = { clientX: e.clientX, clientY: e.clientY };
+                    const ok = await confirm(`Redeem "${r.title}" for ${r.cost_pts} pts (${money(r.cost_pts)})?`, { confirmLabel: "Redeem" });
+                    if (!ok) return;
+                    run(() => api.redeemReward(r.id, selectedKid), "Redeemed: " + r.title + " 🎁", pt, ["🎁", "🎉", "💸"]);
                   }}
                 >
                   Redeem

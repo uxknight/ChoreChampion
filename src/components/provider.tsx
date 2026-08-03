@@ -2,6 +2,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { loadSnapshot, friendlyError } from "@/lib/api";
+import { DialogHost, type Dialog } from "@/components/modal";
 import type { FamilySnapshot } from "@/lib/types";
 
 type Mouseish = { clientX?: number; clientY?: number };
@@ -15,6 +16,8 @@ type Ctx = {
   toast: (m: string) => void;
   burst: (e?: Mouseish | null, emojis?: string[]) => void;
   run: (fn: () => Promise<unknown>, ok?: string, ev?: Mouseish, emojis?: string[]) => Promise<void>;
+  confirm: (message: string, opts?: { confirmLabel?: string; danger?: boolean }) => Promise<boolean>;
+  promptNumber: (message: string, defaultValue?: number, opts?: { confirmLabel?: string }) => Promise<number | null>;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
@@ -34,6 +37,22 @@ export function AppProvider({ initial, children }: { initial: FamilySnapshot; ch
 
   const [toastMsg, setToastMsg] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
+
+  const confirm = useCallback(
+    (message: string, opts?: { confirmLabel?: string; danger?: boolean }) =>
+      new Promise<boolean>((resolve) =>
+        setDialog({ kind: "confirm", message, confirmLabel: opts?.confirmLabel ?? "Confirm", danger: !!opts?.danger, resolve })
+      ),
+    []
+  );
+  const promptNumber = useCallback(
+    (message: string, defaultValue?: number, opts?: { confirmLabel?: string }) =>
+      new Promise<number | null>((resolve) =>
+        setDialog({ kind: "prompt", message, value: defaultValue != null ? String(defaultValue) : "", confirmLabel: opts?.confirmLabel ?? "Add", resolve })
+      ),
+    []
+  );
   const toast = useCallback((m: string) => {
     setToastMsg(m);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -105,11 +124,12 @@ export function AppProvider({ initial, children }: { initial: FamilySnapshot; ch
   }, [initial.familyId, refresh]);
 
   return (
-    <AppCtx.Provider value={{ snap, isParent, refresh, selectedKid, setSelectedKid, toast, burst, run }}>
+    <AppCtx.Provider value={{ snap, isParent, refresh, selectedKid, setSelectedKid, toast, burst, run, confirm, promptNumber }}>
       {children}
       <div id="toast" className={toastMsg ? "show" : ""}>
         {toastMsg}
       </div>
+      {dialog && <DialogHost dialog={dialog} onClose={() => setDialog(null)} />}
     </AppCtx.Provider>
   );
 }

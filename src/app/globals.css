@@ -128,3 +128,12 @@ nav.tabs button.active{color:var(--brand); background:#f3efff}
 .checkin-hero.dissipate{animation:dissipate .6s ease forwards; overflow:hidden}
 /* chores reveal when they appear after check-in */
 .reveal{animation:pop .4s ease}
+/* "On it" claim micro-animation + states */
+.btn.onit{background:linear-gradient(135deg,#7c5cff,#a58bff)}
+.chip.claimed{background:#eef0ff; color:#5646c9}
+@keyframes claimpulse{
+  0%{transform:scale(1); box-shadow:0 0 0 0 rgba(124,92,255,.45)}
+  35%{transform:scale(1.015); box-shadow:0 0 0 7px rgba(124,92,255,.12)}
+  100%{transform:scale(1); box-shadow:0 0 0 0 rgba(124,92,255,0)}
+}
+.chore.claiming{animation:claimpulse .6s ease; border-radius:12px}

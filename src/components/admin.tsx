@@ -17,7 +17,7 @@ type ModalState =
   | null;
 
 export function AdminView() {
-  const { snap, toast, burst, refresh, run } = useApp();
+  const { snap, toast, burst, refresh, run, confirm } = useApp();
   const s = snap.settings;
   const mult = s.mult as number[];
   const money = (p: number) => fmtMoney(p, s.point_value);
@@ -57,7 +57,7 @@ export function AdminView() {
 
   async function doTally() {
     const lines = pointKids.map((k) => `${k.emoji} ${k.name}: ${k.week} pts (${money(k.week)})`).join("\n");
-    if (!window.confirm(`Run the Sunday Tally?\n\n${lines}\n\nWeekly counters reset.`)) return;
+    if (!(await confirm(`Run the Sunday Tally?\n\n${lines}\n\nWeekly counters reset.`, { confirmLabel: "Run payday" }))) return;
     try {
       const res = await api.runTally();
       toast(res.ran ? "💰 Payday! Weekly points banked." : "Tally already ran this week.");
@@ -174,8 +174,12 @@ export function AdminView() {
             </div>
             <button
               className="btn red tiny"
-              onClick={() => {
-                if (!window.confirm(`Apply "${d.title}" (−${d.pts} pts to EACH kid, shared-pool rule)?`)) return;
+              onClick={async () => {
+                const ok = await confirm(`Apply "${d.title}"?\n\n−${d.pts} pts to EACH kid (shared-pool rule). Clean streaks reset.`, {
+                  confirmLabel: "Apply deduction",
+                  danger: true,
+                });
+                if (!ok) return;
                 run(() => api.applyDeduction(d.id), "Deduction applied. Streaks reset. 🏚️");
               }}
             >
@@ -184,7 +188,10 @@ export function AdminView() {
             <button className="btn ghost tiny" onClick={() => setModal({ kind: "deduction", id: d.id })}>
               ✎
             </button>
-            <button className="btn ghost tiny" onClick={() => window.confirm("Delete this rule?") && run(() => api.softDelete("deduction_rules", d.id))}>
+            <button
+              className="btn ghost tiny"
+              onClick={async () => (await confirm("Delete this rule?", { danger: true })) && run(() => api.softDelete("deduction_rules", d.id))}
+            >
               🗑
             </button>
           </div>
@@ -241,7 +248,10 @@ export function AdminView() {
             <button className="btn ghost tiny" onClick={() => setModal({ kind: "chore", id: c.id })}>
               ✎
             </button>
-            <button className="btn ghost tiny" onClick={() => window.confirm("Delete this chore?") && run(() => api.softDelete("chores", c.id))}>
+            <button
+              className="btn ghost tiny"
+              onClick={async () => (await confirm("Delete this chore?", { danger: true })) && run(() => api.softDelete("chores", c.id))}
+            >
               🗑
             </button>
           </div>
@@ -265,7 +275,10 @@ export function AdminView() {
             <button className="btn ghost tiny" onClick={() => setModal({ kind: "reward", id: r.id })}>
               ✎
             </button>
-            <button className="btn ghost tiny" onClick={() => window.confirm("Delete this reward?") && run(() => api.softDelete("rewards", r.id))}>
+            <button
+              className="btn ghost tiny"
+              onClick={async () => (await confirm("Delete this reward?", { danger: true })) && run(() => api.softDelete("rewards", r.id))}
+            >
               🗑
             </button>
           </div>
@@ -287,7 +300,10 @@ export function AdminView() {
             <button className="btn ghost tiny" onClick={() => setModal({ kind: "ellie", id: r.id })}>
               ✎
             </button>
-            <button className="btn ghost tiny" onClick={() => window.confirm("Delete?") && run(() => api.softDelete("ellie_rewards", r.id))}>
+            <button
+              className="btn ghost tiny"
+              onClick={async () => (await confirm("Delete this prize?", { danger: true })) && run(() => api.softDelete("ellie_rewards", r.id))}
+            >
               🗑
             </button>
           </div>
