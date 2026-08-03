@@ -65,6 +65,18 @@ export function AppShell() {
         </div>
       )}
 
+      {!isParent && kid && (
+        <div className="kids">
+          <div className="kidbtn active kid-self" style={{ ["--kc" as string]: kid.color ?? "#7c5cff" }}>
+            <span className="em">{kid.emoji}</span>
+            {kid.name}
+            <span className="pts">
+              {kid.mode === "points" ? `${kid.week} pts this week` : `${kid.stickers} stickers`}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="view">
         {(() => {
           if (tab === "admin" && isParent) return <AdminView />;
