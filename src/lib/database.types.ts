@@ -75,6 +75,7 @@ export type Database = {
           active: boolean
           base_pts: number
           deleted_at: string | null
+          description: string | null
           emoji: string | null
           family_id: string
           freq: string
@@ -86,6 +87,7 @@ export type Database = {
           active?: boolean
           base_pts: number
           deleted_at?: string | null
+          description?: string | null
           emoji?: string | null
           family_id: string
           freq: string
@@ -97,6 +99,7 @@ export type Database = {
           active?: boolean
           base_pts?: number
           deleted_at?: string | null
+          description?: string | null
           emoji?: string | null
           family_id?: string
           freq?: string
@@ -731,18 +734,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      _fam: { Args: never; Returns: string }
-      _login: { Args: { uid: string }; Returns: undefined }
-      _logout: { Args: never; Returns: undefined }
-      _ok: { Args: { cond: boolean; label: string }; Returns: undefined }
-      _pell: { Args: never; Returns: string }
-      _pslav: { Args: never; Returns: string }
-      _pvera: { Args: never; Returns: string }
+      _actor_kid: { Args: { p_kid_id: string }; Returns: string }
       _tally: { Args: { fam: string; wk?: string }; Returns: Json }
-      _uell: { Args: never; Returns: string }
-      _upar: { Args: never; Returns: string }
-      _uslav: { Args: never; Returns: string }
-      _uvera: { Args: never; Returns: string }
       add_kid: {
         Args: {
           p_color?: string
@@ -790,14 +783,11 @@ export type Database = {
         Args: { p_approved?: boolean; p_device_id: string }
         Returns: undefined
       }
-      cartoon_status: {
-        Args: { p_day?: string; p_kid_id: string }
-        Returns: string
-      }
-      check_in: { Args: never; Returns: undefined }
+      cartoon_status: { Args: { p_day?: string }; Returns: string }
+      check_in: { Args: { p_kid_id?: string }; Returns: undefined }
       chore_period_count: { Args: { p_chore_id: string }; Returns: number }
       claim_chore: {
-        Args: { p_chore_id: string }
+        Args: { p_chore_id: string; p_kid_id?: string }
         Returns: {
           chore_id: string
           created_at: string
@@ -831,6 +821,7 @@ export type Database = {
       }
       current_family_id: { Args: never; Returns: string }
       current_kid_id: { Args: never; Returns: string }
+      delete_kid: { Args: { p_kid_id: string }; Returns: undefined }
       family_kids: {
         Args: { p_invite_code: string }
         Returns: {
@@ -841,11 +832,36 @@ export type Database = {
           name: string
         }[]
       }
+      family_snapshot: { Args: never; Returns: Json }
       finish_goal: { Args: { p_goal_id: string }; Returns: undefined }
       gen_invite_code: { Args: never; Returns: string }
       is_biweekly_on: { Args: never; Returns: boolean }
       is_parent: { Args: never; Returns: boolean }
       iso_week_key: { Args: { d: string }; Returns: string }
+      mark_done: {
+        Args: { p_completion_id: string; p_kid_id?: string }
+        Returns: {
+          chore_id: string
+          created_at: string
+          earned: number
+          family_id: string
+          id: string
+          kid_id: string
+          occurred_on: string
+          pts_snapshot: number
+          rated_by: string | null
+          stars: number
+          status: string
+          title_snapshot: string
+          week_key: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "completions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       prev_week_key: { Args: never; Returns: string }
       rate_completion: {
         Args: { p_completion_id: string; p_stars: number }
@@ -855,7 +871,10 @@ export type Database = {
         Args: { p_kid_id: string; p_reward_id: string }
         Returns: Json
       }
-      redeem_reward: { Args: { p_reward_id: string }; Returns: Json }
+      redeem_reward: {
+        Args: { p_kid_id?: string; p_reward_id: string }
+        Returns: Json
+      }
       request_device: {
         Args: { p_invite_code: string; p_kid_id: string; p_label?: string }
         Returns: Json
@@ -865,7 +884,7 @@ export type Database = {
       run_tally: { Args: never; Returns: Json }
       seed_family: { Args: { fam: string }; Returns: undefined }
       start_goal: {
-        Args: { p_reward_id: string }
+        Args: { p_kid_id?: string; p_reward_id: string }
         Returns: {
           created_at: string
           done: boolean
@@ -884,6 +903,15 @@ export type Database = {
         }
       }
       toggle_hotspot: { Args: { p_chore_id: string }; Returns: boolean }
+      update_kid: {
+        Args: {
+          p_color: string
+          p_emoji: string
+          p_kid_id: string
+          p_name: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

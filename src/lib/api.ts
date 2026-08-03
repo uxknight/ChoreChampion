@@ -136,15 +136,15 @@ export const requestDevice = (code: string, kidId: string, label?: string) =>
   rpc("request_device", { p_invite_code: code, p_kid_id: kidId, p_label: label ?? null });
 
 // ---- catalog CRUD (parent, direct table writes via RLS) ----
-export async function upsertChore(row: { id?: string; emoji: string; title: string; base_pts: number; freq: string; family_id: string; active?: boolean }) {
+export async function upsertChore(row: { id?: string; emoji: string; title: string; description: string; base_pts: number; freq: string; family_id: string; active?: boolean }) {
   const c = sb();
   if (row.id) {
-    const patch: ChoreUpdate = { emoji: row.emoji, title: row.title, base_pts: row.base_pts, freq: row.freq };
+    const patch: ChoreUpdate = { emoji: row.emoji, title: row.title, description: row.description, base_pts: row.base_pts, freq: row.freq };
     if (row.freq !== "ondemand") patch.active = true;
     const { error } = await c.from("chores").update(patch).eq("id", row.id);
     if (error) throw new Error(error.message);
   } else {
-    const { error } = await c.from("chores").insert({ emoji: row.emoji, title: row.title, base_pts: row.base_pts, freq: row.freq, family_id: row.family_id, active: row.freq !== "ondemand" });
+    const { error } = await c.from("chores").insert({ emoji: row.emoji, title: row.title, description: row.description, base_pts: row.base_pts, freq: row.freq, family_id: row.family_id, active: row.freq !== "ondemand" });
     if (error) throw new Error(error.message);
   }
 }

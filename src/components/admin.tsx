@@ -457,7 +457,8 @@ function CatalogModal({
     const c = modal.id ? snap.chores.find((x) => x.id === modal.id) : undefined;
     const fields: Field[] = [
       { label: "Pick an emoji", emojis: CHORE_EMOJIS, value: c?.emoji || "🧩" },
-      { label: "Description", value: c?.title ?? "" },
+      { label: "Chore name", value: c?.title ?? "" },
+      { label: "Description (shown when a kid taps ?)", type: "textarea", value: c?.description ?? "" },
       { label: "Base points", type: "number", step: "0.5", value: c?.base_pts ?? 1 },
       { label: "Frequency", options: FREQ_OPTIONS, value: c?.freq ?? "daily" },
     ];
@@ -467,9 +468,12 @@ function CatalogModal({
         fields={fields}
         onCancel={onClose}
         onSave={async (v) => {
-          if (!v[1] || !(Number(v[2]) > 0)) return toast("Need a description and points.");
+          if (!v[1] || !(Number(v[3]) > 0)) return toast("Need a chore name and points.");
           try {
-            await api.upsertChore({ id: modal.id, emoji: String(v[0]), title: String(v[1]), base_pts: Number(v[2]), freq: String(v[3]), family_id: familyId });
+            await api.upsertChore({
+              id: modal.id, emoji: String(v[0]), title: String(v[1]), description: String(v[2]),
+              base_pts: Number(v[3]), freq: String(v[4]), family_id: familyId,
+            });
             await afterSave();
           } catch (e) {
             onError(e);

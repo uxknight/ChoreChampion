@@ -150,3 +150,10 @@ nav.tabs button.active{color:var(--brand); background:#f3efff}
   100%{transform:scale(1); box-shadow:0 0 0 0 rgba(124,92,255,0)}
 }
 .chore.claiming{animation:claimpulse .6s ease; border-radius:12px}
+/* chore description ("?" help) */
+.help-btn{width:28px; height:28px; flex-shrink:0; border-radius:50%; border:2px solid #e8e4f5;
+  background:#fff; color:var(--brand); font-weight:800; font-size:14px; cursor:pointer; line-height:1}
+.help-btn:active{transform:scale(.9)}
+.chore-wrap:last-child .chore{border-bottom:none}
+.chore-desc{font-size:13px; color:var(--ink); line-height:1.5; background:#f6f3ff;
+  border-radius:12px; padding:10px 12px; margin:2px 0 10px}

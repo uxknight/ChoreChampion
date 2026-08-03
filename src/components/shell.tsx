@@ -491,7 +491,7 @@ function Rules({ money }: { money: (p: number) => string }) {
   return (
     <>
       <div className="card">
-        <h3>📜 The Family Rules (the fine print)</h3>
+        <h3>📜 Ground rules (the fine print)</h3>
         <ol className="rulelist">
           <li><b>1.</b> Your own stuff — room, laundry, bed, backpack — is <b>never paid</b>. That’s just being part of the family.</li>
           <li><b>2.</b> Paid chores are first-come, first-served. Tapping <b>Done!</b> without actually doing it = the chore gets un-done and the other kid can take it.</li>
@@ -499,13 +499,18 @@ function Rules({ money }: { money: (p: number) => string }) {
           <li><b>4.</b> The parent’s star rating is <b>final</b>. Arguing about stars has never once created a star.</li>
           <li><b>5.</b> Room check every night. If anyone’s stuff is out, <b>both of you</b> lose points. Protect each other!</li>
           <li><b>6.</b> Deductions stop at {s.weekly_deduction_cap} pts a week and can never touch your banked points or take you below zero.</li>
-          <li><b>7.</b> {s.personal_streak_days} clean room-checks in a row = <b>+{s.personal_streak_bonus} bonus each</b>. 🏠🔥</li>
-          <li><b>8.</b> {s.quality_streak_len} chores in a row at ★★★ = <b>+{s.quality_streak_bonus} bonus</b>. 🔥</li>
-          <li><b>9.</b> Finish all of today’s chores at ★★★ and you’ve earned <b>{s.cartoon_minutes} minutes of cartoons</b> — automatically, no points needed. 📺</li>
-          <li><b>10.</b> Payday is <b>Sunday</b>. Spend, save, or split — your call. Points in the bank are safe forever.</li>
-          <li><b>11.</b> Big rewards use a <b>goal tracker</b> — add banked points each week and watch the bar fill up.</li>
-          <li><b>12.</b> 🔔 <b>Hotspots</b> pop up when a parent activates them (entryway, garage…). First to grab it gets it — then it vanishes until it’s messy again.</li>
-          <li><b>13.</b> Ellie’s stickers are Ellie’s. Helping her helps your ★★★ chances. 🐣</li>
+          <li><b>7.</b> Payday is <b>Sunday</b>. Spend, save, or split — your call. Points in the bank are safe forever.</li>
+          <li><b>8.</b> Big rewards use a <b>goal tracker</b> — add banked points each week and watch the bar fill up.</li>
+          <li><b>9.</b> 🔔 <b>Hotspots</b> pop up when a parent activates them (entryway, garage…). First to grab it gets it — then it vanishes until it’s messy again.</li>
+          <li><b>10.</b> Ellie’s stickers are Ellie’s. Helping her helps your ★★★ chances. 🐣</li>
+        </ol>
+      </div>
+      <div className="card">
+        <h3>🌟 Bonuses &amp; privileges</h3>
+        <ol className="rulelist">
+          <li><b>1.</b> 🏠🔥 <b>Clean-room streak:</b> {s.personal_streak_days} clean room-checks in a row = <b>+{s.personal_streak_bonus} bonus each</b>.</li>
+          <li><b>2.</b> 🔥 <b>Quality streak:</b> {s.quality_streak_len} chores in a row at ★★★ = <b>+{s.quality_streak_bonus} bonus</b>.</li>
+          <li><b>3.</b> 📺 <b>Cartoon time:</b> finish all of today’s chores at ★★★ and you’ve earned <b>{s.cartoon_minutes} minutes of cartoons</b> — automatically, no points needed.</li>
         </ol>
       </div>
       <div className="card">

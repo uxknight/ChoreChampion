@@ -56,7 +56,7 @@ export function DialogHost({ dialog, onClose }: { dialog: Dialog; onClose: () =>
 
 export type Field = {
   label: string;
-  type?: "text" | "number";
+  type?: "text" | "number" | "textarea";
   step?: string;
   value?: string | number;
   options?: { v: string; t: string }[];
@@ -123,6 +123,8 @@ export function FormModal({
                   </option>
                 ))}
               </select>
+            ) : f.type === "textarea" ? (
+              <textarea rows={3} value={String(vals[i])} onChange={(e) => set(i, e.target.value)} />
             ) : (
               <input
                 type={f.type || "text"}
