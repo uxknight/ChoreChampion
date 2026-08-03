@@ -342,4 +342,24 @@ begin
   perform _ok(ok, 'flexible redeem rejects a non-positive amount');
 end $$;
 
+-- =====================================================================
+-- Test 13: parent awards bonus points for an achievement; kids cannot
+-- =====================================================================
+do $$
+declare rule uuid; res jsonb; ok boolean;
+begin
+  update profiles set week=0 where id=_pvera();
+  insert into bonus_rules(family_id, title, pts) values (_fam(), 'Helped a sibling', 2)
+    returning id into rule;
+  perform _login(_upar());
+  res := award_bonus(rule, _pvera());
+  perform _ok((res->>'pts')::numeric = 2, 'award_bonus returns the points');
+  perform _ok((select week from profiles where id=_pvera()) = 2, 'award_bonus adds points to the kid''s week');
+  perform _ok((select count(*) from bonus_events where kid_id=_pvera()) = 1, 'award_bonus logs an event');
+
+  perform _login(_uvera());
+  begin perform award_bonus(rule, _pvera()); ok:=false; exception when others then ok:=true; end;
+  perform _ok(ok, 'a kid cannot award bonus points');
+end $$;
+
 select '========== ALL ACCEPTANCE TESTS PASSED ==========' as result;

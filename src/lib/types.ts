@@ -10,6 +10,8 @@ export type EllieReward = T["ellie_rewards"]["Row"];
 export type Redemption = T["redemptions"]["Row"];
 export type Goal = T["goals"]["Row"];
 export type Settings = T["settings"]["Row"];
+export type BonusRule = T["bonus_rules"]["Row"];
+export type BonusEvent = T["bonus_events"]["Row"];
 
 export type CartoonState = "none" | "pending" | "earned" | "missed";
 
@@ -45,6 +47,8 @@ export type FamilySnapshot = {
   ellieRewards: EllieReward[];
   deductions: DeductionRule[];
   deductionEvents: DeductionEvent[];
+  bonusRules: BonusRule[];
+  bonusEvents: BonusEvent[];
   goals: Goal[];
   redemptions: Redemption[];
   completions: Completion[];

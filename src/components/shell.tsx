@@ -167,6 +167,7 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
   const checked = snap.checkins.some((c) => c.kid_id === kid.id && c.occurred_on === snap.today);
   const [dissipating, setDissipating] = useState(false);
   const myDeductions = snap.deductionEvents; // shared across all kids
+  const myBonuses = snap.bonusEvents.filter((e) => e.kid_id === kid.id);
 
   async function handleCheckIn(e: React.MouseEvent) {
     burst(e, ["👋", "☀️", "⭐"]);
@@ -240,6 +241,22 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
       <div className="tv">
         <b>{tv[cs]}</b>
       </div>
+
+      {myBonuses.length > 0 && (
+        <div className="card">
+          <h3>🌟 Bonus points this week</h3>
+          <div className="muted" style={{ marginBottom: 6 }}>Extra points for going above and beyond!</div>
+          {myBonuses.map((ev) => (
+            <div className="chore" key={ev.id}>
+              <div className="grow">
+                <div className="ttl">{ev.title}</div>
+                <div className="meta">{ev.occurred_on}</div>
+              </div>
+              <span className="chip green">+{ev.pts} pts</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {myDeductions.length > 0 && (
         <div className="card">

@@ -55,6 +55,8 @@ type RawSnapshot = {
   ellie_rewards: FamilySnapshot["ellieRewards"];
   deductions: FamilySnapshot["deductions"];
   deduction_events: FamilySnapshot["deductionEvents"];
+  bonus_rules: FamilySnapshot["bonusRules"];
+  bonus_events: FamilySnapshot["bonusEvents"];
   goals: FamilySnapshot["goals"];
   redemptions: FamilySnapshot["redemptions"];
   completions: FamilySnapshot["completions"];
@@ -83,6 +85,8 @@ export async function loadSnapshot(): Promise<FamilySnapshot | null> {
     ellieRewards: r.ellie_rewards ?? [],
     deductions: r.deductions ?? [],
     deductionEvents: r.deduction_events ?? [],
+    bonusRules: r.bonus_rules ?? [],
+    bonusEvents: r.bonus_events ?? [],
     goals: r.goals ?? [],
     redemptions: r.redemptions ?? [],
     completions: r.completions ?? [],
@@ -109,6 +113,8 @@ export const finishGoal = (goalId: string) => rpc("finish_goal", { p_goal_id: go
 export const rate = (completionId: string, stars: number) =>
   rpc<{ earned: number; stars: number; streak_bonus: number; kid_id: string }>("rate_completion", { p_completion_id: completionId, p_stars: stars });
 export const applyDeduction = (ruleId: string) => rpc<Record<string, number>>("apply_deduction", { p_rule_id: ruleId });
+export const awardBonus = (ruleId: string, kidId: string) =>
+  rpc<{ title: string; pts: number; kid_id: string }>("award_bonus", { p_rule_id: ruleId, p_kid_id: kidId });
 export const roomCheck = () => rpc<{ bonus: boolean; bonus_pts: number }>("room_check");
 export const runTally = () => rpc<{ ran: boolean; week_key: string }>("run_tally");
 export const toggleHotspot = (choreId: string) => rpc<boolean>("toggle_hotspot", { p_chore_id: choreId });
@@ -150,7 +156,14 @@ export async function upsertChore(row: { id?: string; emoji: string; title: stri
     if (error) throw new Error(error.message);
   }
 }
-export const softDelete = async (table: "chores" | "deduction_rules" | "rewards" | "ellie_rewards", id: string) => {
+export async function upsertBonus(row: { id?: string; title: string; pts: number; family_id: string }) {
+  const c = sb();
+  const { error } = row.id
+    ? await c.from("bonus_rules").update({ title: row.title, pts: row.pts }).eq("id", row.id)
+    : await c.from("bonus_rules").insert({ title: row.title, pts: row.pts, family_id: row.family_id });
+  if (error) throw new Error(error.message);
+}
+export const softDelete = async (table: "chores" | "deduction_rules" | "rewards" | "ellie_rewards" | "bonus_rules", id: string) => {
   const { error } = await sb().from(table).update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) throw new Error(error.message);
 };

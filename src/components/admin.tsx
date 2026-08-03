@@ -12,13 +12,15 @@ type ModalState =
   | { kind: "kid"; id?: string }
   | { kind: "chore"; id?: string }
   | { kind: "deduction"; id?: string }
+  | { kind: "bonus"; id?: string }
   | { kind: "reward"; id?: string }
   | { kind: "ellie"; id?: string }
   | { kind: "settings" }
   | null;
 
 export function AdminView() {
-  const { snap, toast, burst, refresh, run, confirm } = useApp();
+  const { snap, toast, burst, refresh, run, confirm, selectedKid } = useApp();
+  const selKid = snap.kids.find((k) => k.id === selectedKid);
   const s = snap.settings;
   const mult = s.mult as number[];
   const money = (p: number) => fmtMoney(p, s.point_value);
@@ -242,6 +244,41 @@ export function AdminView() {
         ))}
         <button className="btn ghost small" style={{ marginTop: 8 }} onClick={() => setModal({ kind: "deduction" })}>
           ＋ Add deduction rule
+        </button>
+
+        <div className="muted" style={{ margin: "14px 0 6px" }}>
+          Or award bonus points for an achievement — goes to{" "}
+          <b>{selKid && selKid.mode === "points" ? selKid.name : "the selected kid"}</b> (pick them at the top):
+        </div>
+        {snap.bonusRules.map((b) => (
+          <div className="adminrow" key={b.id}>
+            <div className="grow">
+              {b.title} <span className="chip green">+{b.pts}</span>
+            </div>
+            <button
+              className="btn green tiny"
+              disabled={!selKid || selKid.mode !== "points"}
+              onClick={async () => {
+                if (!selKid || selKid.mode !== "points") return toast("Pick a points kid at the top first.");
+                if (await confirm(`Award "${b.title}" (+${b.pts}) to ${selKid.name}?`, { confirmLabel: "Award ✨" }))
+                  run(() => api.awardBonus(b.id, selKid.id), `+${b.pts} to ${selKid.name}! 🌟`);
+              }}
+            >
+              Award ✨
+            </button>
+            <button className="btn ghost tiny" onClick={() => setModal({ kind: "bonus", id: b.id })}>
+              ✎
+            </button>
+            <button
+              className="btn ghost tiny"
+              onClick={async () => (await confirm("Delete this achievement?", { danger: true })) && run(() => api.softDelete("bonus_rules", b.id))}
+            >
+              🗑
+            </button>
+          </div>
+        ))}
+        <button className="btn ghost small" style={{ marginTop: 8 }} onClick={() => setModal({ kind: "bonus" })}>
+          ＋ Add achievement
         </button>
       </div>
 
@@ -498,6 +535,29 @@ function CatalogModal({
           if (!v[0] || !(Number(v[1]) > 0)) return toast("Need a description and points.");
           try {
             await api.upsertDeduction({ id: modal.id, title: String(v[0]), pts: Number(v[1]), family_id: familyId });
+            await afterSave();
+          } catch (e) {
+            onError(e);
+          }
+        }}
+      />
+    );
+  }
+
+  if (modal.kind === "bonus") {
+    const b = modal.id ? snap.bonusRules.find((x) => x.id === modal.id) : undefined;
+    return (
+      <FormModal
+        title={modal.id ? "Edit achievement" : "New achievement"}
+        fields={[
+          { label: "Achievement (e.g. Helped a sibling)", value: b?.title ?? "" },
+          { label: "Bonus points", type: "number", step: "0.5", value: b?.pts ?? 1 },
+        ]}
+        onCancel={onClose}
+        onSave={async (v) => {
+          if (!v[0] || !(Number(v[1]) > 0)) return toast("Need an achievement and points.");
+          try {
+            await api.upsertBonus({ id: modal.id, title: String(v[0]), pts: Number(v[1]), family_id: familyId });
             await afterSave();
           } catch (e) {
             onError(e);

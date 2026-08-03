@@ -34,6 +34,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      bonus_events: {
+        Row: {
+          created_at: string
+          family_id: string
+          id: string
+          kid_id: string
+          occurred_on: string
+          pts: number
+          rule_id: string | null
+          title: string
+          week_key: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          id?: string
+          kid_id: string
+          occurred_on: string
+          pts: number
+          rule_id?: string | null
+          title: string
+          week_key: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          id?: string
+          kid_id?: string
+          occurred_on?: string
+          pts?: number
+          rule_id?: string | null
+          title?: string
+          week_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_events_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bonus_events_kid_id_fkey"
+            columns: ["kid_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bonus_events_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bonus_rules: {
+        Row: {
+          deleted_at: string | null
+          family_id: string
+          id: string
+          pts: number
+          title: string
+        }
+        Insert: {
+          deleted_at?: string | null
+          family_id: string
+          id?: string
+          pts: number
+          title: string
+        }
+        Update: {
+          deleted_at?: string | null
+          family_id?: string
+          id?: string
+          pts?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_rules_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checkins: {
         Row: {
           created_at: string
@@ -783,6 +873,10 @@ export type Database = {
         Args: { p_approved?: boolean; p_device_id: string }
         Returns: undefined
       }
+      award_bonus: {
+        Args: { p_kid_id: string; p_rule_id: string }
+        Returns: Json
+      }
       cartoon_status: { Args: { p_day?: string }; Returns: string }
       check_in: { Args: { p_kid_id?: string }; Returns: undefined }
       chore_period_count: { Args: { p_chore_id: string }; Returns: number }
@@ -869,6 +963,10 @@ export type Database = {
       }
       redeem_ellie: {
         Args: { p_kid_id: string; p_reward_id: string }
+        Returns: Json
+      }
+      redeem_flexible: {
+        Args: { p_amount: number; p_kid_id?: string; p_reward_id: string }
         Returns: Json
       }
       redeem_reward: {
