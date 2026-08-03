@@ -323,4 +323,23 @@ begin
   perform _ok((select count(*) from profiles where id=kidid)=0, 'parent can remove a kid (cascades)');
 end $$;
 
+-- =====================================================================
+-- Test 12: flexible reward — kid chooses how many points to allocate
+-- =====================================================================
+do $$
+declare rw uuid; res jsonb; ok boolean;
+begin
+  update profiles set bank=50 where id=_pvera();
+  update rewards set type='flexible' where family_id=_fam() and title='Temu order';
+  select id into rw from rewards where family_id=_fam() and title='Temu order';
+  perform _login(_uvera());
+  res := redeem_flexible(rw, 30);
+  perform _ok((res->>'cost')::numeric = 30, 'flexible redeem records the chosen amount');
+  perform _ok((select bank from profiles where id=_pvera()) = 20, 'flexible redeem debits exactly the chosen amount');
+  begin perform redeem_flexible(rw, 1000); ok:=false; exception when others then ok:=true; end;
+  perform _ok(ok, 'flexible redeem rejects more than banked');
+  begin perform redeem_flexible(rw, 0); ok:=false; exception when others then ok:=true; end;
+  perform _ok(ok, 'flexible redeem rejects a non-positive amount');
+end $$;
+
 select '========== ALL ACCEPTANCE TESTS PASSED ==========' as result;

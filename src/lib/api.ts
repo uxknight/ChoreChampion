@@ -98,6 +98,8 @@ export const checkIn = (kidId: string) => rpc("check_in", { p_kid_id: kidId });
 export const claimChore = (choreId: string, kidId: string) => rpc("claim_chore", { p_chore_id: choreId, p_kid_id: kidId });
 export const markDone = (completionId: string, kidId: string) => rpc("mark_done", { p_completion_id: completionId, p_kid_id: kidId });
 export const redeemReward = (rewardId: string, kidId: string) => rpc<{ title: string; cost: number }>("redeem_reward", { p_reward_id: rewardId, p_kid_id: kidId });
+export const redeemFlexible = (rewardId: string, amount: number, kidId: string) =>
+  rpc<{ title: string; cost: number }>("redeem_flexible", { p_reward_id: rewardId, p_amount: amount, p_kid_id: kidId });
 export const startGoal = (rewardId: string, kidId: string) => rpc("start_goal", { p_reward_id: rewardId, p_kid_id: kidId });
 export const allocateToGoal = (goalId: string, amount: number) =>
   rpc<{ added: number; saved: number; target: number; reached: boolean }>("allocate_to_goal", { p_goal_id: goalId, p_amount: amount });

@@ -6,7 +6,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import * as api from "@/lib/api";
 import { friendlyError } from "@/lib/api";
 import { money as fmtMoney, starStr, half } from "@/lib/format";
-import { FREQ_OPTIONS, ANIMAL_EMOJIS, randomAnimal, VIBRANT_COLORS, randomColor, CHORE_EMOJIS } from "@/lib/format";
+import { FREQ_OPTIONS, randomAnimal, VIBRANT_COLORS, randomColor } from "@/lib/format";
 
 type ModalState =
   | { kind: "kid"; id?: string }
@@ -313,7 +313,8 @@ export function AdminView() {
             <div className="grow">
               {r.title}
               <div className="muted">
-                {r.cost_pts} pts ({money(r.cost_pts)}) · {r.type === "goal" ? "savings goal" : "instant"}
+                {r.cost_pts} pts ({money(r.cost_pts)}) ·{" "}
+                {r.type === "goal" ? "savings goal" : r.type === "flexible" ? "flexible" : "instant"}
               </div>
             </div>
             <button className="btn ghost tiny" onClick={() => setModal({ kind: "reward", id: r.id })}>
@@ -415,7 +416,7 @@ function CatalogModal({
     const k = modal.id ? snap.kids.find((x) => x.id === modal.id) : undefined;
     const baseFields: Field[] = [
       { label: "Name", value: k?.name ?? "" },
-      { label: "Pick an animal", emojis: ANIMAL_EMOJIS, value: k?.emoji ?? kidEmoji },
+      { label: "Pick an emoji", emojiPicker: true, value: k?.emoji ?? kidEmoji },
       { label: "Pick a color", colors: VIBRANT_COLORS, value: k?.color ?? kidColor },
     ];
     const fields: Field[] = k
@@ -456,7 +457,7 @@ function CatalogModal({
   if (modal.kind === "chore") {
     const c = modal.id ? snap.chores.find((x) => x.id === modal.id) : undefined;
     const fields: Field[] = [
-      { label: "Pick an emoji", emojis: CHORE_EMOJIS, value: c?.emoji || "🧩" },
+      { label: "Pick an emoji", emojiPicker: true, value: c?.emoji || "🧩" },
       { label: "Chore name", value: c?.title ?? "" },
       { label: "Description (shown when a kid taps ?)", type: "textarea", value: c?.description ?? "" },
       { label: "Base points", type: "number", step: "0.5", value: c?.base_pts ?? 1 },
@@ -514,7 +515,15 @@ function CatalogModal({
         fields={[
           { label: "Title", value: r?.title ?? "" },
           { label: "Cost (points)", type: "number", step: "1", value: r?.cost_pts ?? 20 },
-          { label: "Type", options: [{ v: "spend", t: "Instant redeem" }, { v: "goal", t: "Savings goal (tracker)" }], value: r?.type ?? "spend" },
+          {
+            label: "Type",
+            options: [
+              { v: "spend", t: "Instant redeem (fixed cost)" },
+              { v: "flexible", t: "Flexible — kid chooses how many points" },
+              { v: "goal", t: "Savings goal (tracker)" },
+            ],
+            value: r?.type ?? "spend",
+          },
           { label: "Note (shown to kids)", value: r?.note ?? "" },
         ]}
         onCancel={onClose}

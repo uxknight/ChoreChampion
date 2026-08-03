@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { EmojiPickerField } from "@/components/EmojiPicker";
 
 // ---- imperative confirm/prompt dialogs (window.confirm/prompt are blocked in
 // the app's embedded browser, so we render our own) ----
@@ -61,6 +62,7 @@ export type Field = {
   value?: string | number;
   options?: { v: string; t: string }[];
   emojis?: string[]; // when set, render a tappable emoji-picker grid instead of an input
+  emojiPicker?: boolean; // when set, render the full searchable emoji picker
   colors?: string[]; // when set, render a color-swatch picker instead of an input
 };
 
@@ -89,7 +91,9 @@ export function FormModal({
         {fields.map((f, i) => (
           <div className="field" key={i}>
             <label>{f.label}</label>
-            {f.colors ? (
+            {f.emojiPicker ? (
+              <EmojiPickerField value={String(vals[i])} onChange={(v) => set(i, v)} />
+            ) : f.colors ? (
               <div className="color-grid">
                 {f.colors.map((c) => (
                   <button

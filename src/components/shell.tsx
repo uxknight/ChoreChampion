@@ -390,12 +390,16 @@ function Rewards({ kid, money }: { kid: Profile; money: (p: number) => string })
         <h3>🎁 Reward catalog</h3>
         {snap.rewards.map((r) => {
           const afford = kid.bank >= r.cost_pts;
+          const meta =
+            r.type === "flexible"
+              ? `You choose the points · about ${r.cost_pts} pts (${money(r.cost_pts)})`
+              : `${r.cost_pts} pts · ${money(r.cost_pts)}`;
           return (
             <div className="chore" key={r.id}>
               <div className="grow">
                 <div className="ttl">{r.title}</div>
                 <div className="meta">
-                  {r.cost_pts} pts · {money(r.cost_pts)}
+                  {meta}
                   {r.note ? " — " + r.note : ""}
                 </div>
               </div>
@@ -405,6 +409,24 @@ function Rewards({ kid, money }: { kid: Profile; money: (p: number) => string })
                   onClick={() => run(() => api.startGoal(r.id, selectedKid), "Goal started! Add banked points anytime.")}
                 >
                   Save up 🚀
+                </button>
+              ) : r.type === "flexible" ? (
+                <button
+                  className="btn small"
+                  disabled={kid.bank <= 0}
+                  onClick={async () => {
+                    if (kid.bank <= 0) return toast("No banked points yet — keep going!");
+                    const amt = await promptNumber(
+                      `How many points to put toward ${r.title}? (You have ${kid.bank})`,
+                      Math.min(r.cost_pts, kid.bank),
+                      { confirmLabel: "Redeem" }
+                    );
+                    if (!amt || amt <= 0) return;
+                    if (amt > kid.bank) return toast("That’s more than you have banked.");
+                    run(() => api.redeemFlexible(r.id, amt, selectedKid), `Redeemed ${amt} pts on ${r.title} 🎁`, undefined, ["🎁", "🎉", "💸"]);
+                  }}
+                >
+                  Redeem
                 </button>
               ) : (
                 <button
