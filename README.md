@@ -61,9 +61,9 @@ node scripts/import-prototype.mjs --file backup.json --family KNIGHT         # a
 Carries over per-kid bank/week/streaks/stickers, goals, redemptions, the current
 week's rated scorecard, and today's check-ins — no earned points lost.
 
-## Deploy (Vercel + Supabase)
-1. Push to `github.com/uxknight/ChoreChampion`.
-2. Create a hosted Supabase project; run `supabase db push` (or apply
-   `supabase/migrations` + `seed`). Enable anonymous sign-ins in Auth settings.
-3. In Vercel, set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`, and `CRON_SECRET`. The cron is configured in `vercel.json`.
+## Deploy (GitHub + Supabase + Vercel)
+See **[DEPLOY.md](DEPLOY.md)** for the full step-by-step runbook. In short: push to
+GitHub, `supabase link` + `supabase db push` a hosted project (migrations only — the
+local `seed.sql` test family never ships), enable anonymous sign-ins, then import the
+repo in Vercel with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, and `CRON_SECRET`. The Sunday-tally cron is in `vercel.json`.
