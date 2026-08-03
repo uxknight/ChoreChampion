@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useApp } from "@/components/provider";
 import { ChoreList } from "@/components/choreList";
 import { AdminView } from "@/components/admin";
@@ -66,17 +66,14 @@ export function AppShell() {
       )}
 
       <div className="view">
-        {tab === "admin" && isParent ? (
-          <AdminView />
-        ) : kid?.mode === "stickers" ? (
-          <EllieHome kid={kid} money={money} />
-        ) : tab === "home" ? (
-          <Home key={kid.id} kid={kid} money={money} />
-        ) : tab === "rewards" ? (
-          <Rewards kid={kid} money={money} />
-        ) : (
-          <Rules money={money} />
-        )}
+        {(() => {
+          if (tab === "admin" && isParent) return <AdminView />;
+          if (tab === "rules") return <Rules money={money} />;
+          if (!kid) return <NoKids isParent={isParent} onGoAdmin={() => setTab("admin")} />;
+          if (kid.mode === "stickers") return <EllieHome kid={kid} money={money} />;
+          if (tab === "home") return <Home key={kid.id} kid={kid} money={money} />;
+          return <Rewards kid={kid} money={money} />;
+        })()}
       </div>
 
       <nav className="tabs">
@@ -100,6 +97,45 @@ export function AppShell() {
 
 // Household-wide cartoon rule: cartoons unlock only when EVERY daily-chore slot
 // for the family is done and rated ★★★ (chores are shared, so it's a family goal).
+// Shown when a family has no kids yet (e.g. right after a parent creates it).
+function NoKids({ isParent, onGoAdmin }: { isParent: boolean; onGoAdmin: () => void }) {
+  const [code, setCode] = useState("");
+  useEffect(() => {
+    api.getFamilyCode().then(setCode);
+  }, []);
+
+  if (!isParent) {
+    return (
+      <div className="card">
+        <h3>👋 Almost there</h3>
+        <div className="muted">Ask a parent to finish setting up your profile.</div>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="checkin-hero">
+        <div style={{ fontSize: 18, fontWeight: 800 }}>Welcome! 👋</div>
+        <div className="muted" style={{ marginTop: 2 }}>Let’s add your kids to get started.</div>
+      </div>
+      <div className="card">
+        <h3>👧 Add your kids</h3>
+        <div className="muted" style={{ marginBottom: 10 }}>
+          Add each child in Admin, then their chores appear here and they can start earning.
+        </div>
+        <button className="btn" onClick={onGoAdmin}>
+          Go to Admin → add kids
+        </button>
+      </div>
+      <div className="card">
+        <h3>📣 Your family code</h3>
+        <div className="muted">Kids enter this on their own device to join:</div>
+        <div className="big" style={{ letterSpacing: 6, marginTop: 8 }}>{code || "…"}</div>
+      </div>
+    </>
+  );
+}
+
 function cartoonStatus(snap: ReturnType<typeof useApp>["snap"]): CartoonState {
   const dailyIds = new Set(snap.chores.filter((c) => c.freq === "daily" || c.freq === "twice_daily").map((c) => c.id));
   const totalSlots = snap.chores

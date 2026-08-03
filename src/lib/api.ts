@@ -118,6 +118,12 @@ export const approveDevice = (deviceId: string, approved = true) =>
 export const addKid = (name: string, emoji: string, color: string, mode: string) =>
   rpc("add_kid", { p_name: name, p_emoji: emoji, p_color: color, p_mode: mode });
 
+// The family invite code (readable by any family member via RLS).
+export async function getFamilyCode(): Promise<string> {
+  const { data } = await sb().from("families").select("invite_code").maybeSingle();
+  return data?.invite_code ?? "";
+}
+
 // ---- onboarding ----
 export const createFamily = (familyName: string, parentName: string, emoji = "👑", color = "#7c5cff") =>
   rpc<{ family_id: string; invite_code: string }>("create_family", { p_family_name: familyName, p_parent_name: parentName, p_parent_emoji: emoji, p_parent_color: color });

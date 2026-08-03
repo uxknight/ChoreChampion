@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useApp } from "@/components/provider";
 import { FormModal, type Field } from "@/components/modal";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -9,6 +9,7 @@ import { money as fmtMoney, starStr, half } from "@/lib/format";
 import { FREQ_OPTIONS } from "@/lib/format";
 
 type ModalState =
+  | { kind: "kid" }
   | { kind: "chore"; id?: string }
   | { kind: "deduction"; id?: string }
   | { kind: "reward"; id?: string }
@@ -26,6 +27,10 @@ export function AdminView() {
   const pending = snap.completions.filter((e) => e.status === "pending");
   const kidById = (id: string) => snap.kids.find((k) => k.id === id);
   const pointKids = snap.kids.filter((k) => k.mode === "points");
+  const [code, setCode] = useState("");
+  useEffect(() => {
+    api.getFamilyCode().then(setCode);
+  }, []);
 
   async function doRate(ev: React.MouseEvent, id: string, stars: number, kidName: string) {
     try {
@@ -94,6 +99,31 @@ export function AdminView() {
 
   return (
     <>
+      {/* family: invite code + kids */}
+      <div className="card">
+        <h3>👨‍👩‍👧 Your family</h3>
+        <div className="muted" style={{ marginBottom: 4 }}>
+          Kids join by entering this code on their own device:
+        </div>
+        <div className="big" style={{ letterSpacing: 6 }}>{code || "…"}</div>
+        <div style={{ marginTop: 12 }}>
+          {snap.kids.length ? (
+            snap.kids.map((k) => (
+              <div className="adminrow" key={k.id}>
+                <div className="grow">
+                  {k.emoji} {k.name} <span className="muted">· {k.mode}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="muted">No kids yet — add your first one below.</div>
+          )}
+          <button className="btn small" style={{ marginTop: 8 }} onClick={() => setModal({ kind: "kid" })}>
+            ＋ Add a kid
+          </button>
+        </div>
+      </div>
+
       {/* pending device approvals */}
       {snap.pendingDevices.length > 0 && (
         <div className="card">
@@ -364,6 +394,37 @@ function CatalogModal({
   onError: (e: unknown) => void;
 }) {
   const { snap, toast } = useApp();
+
+  if (modal.kind === "kid") {
+    return (
+      <FormModal
+        title="Add a kid"
+        fields={[
+          { label: "Name", value: "" },
+          { label: "Emoji", value: "🦊" },
+          { label: "Color (hex)", value: "#7c5cff" },
+          {
+            label: "Track",
+            options: [
+              { v: "points", t: "Points — earns money & rewards" },
+              { v: "stickers", t: "Stickers — for little ones" },
+            ],
+            value: "points",
+          },
+        ]}
+        onCancel={onClose}
+        onSave={async (v) => {
+          if (!v[0]) return toast("Need a name.");
+          try {
+            await api.addKid(String(v[0]), String(v[1]) || "🙂", String(v[2]) || "#7c5cff", String(v[3]));
+            await afterSave();
+          } catch (e) {
+            onError(e);
+          }
+        }}
+      />
+    );
+  }
 
   if (modal.kind === "chore") {
     const c = modal.id ? snap.chores.find((x) => x.id === modal.id) : undefined;
