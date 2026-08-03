@@ -61,6 +61,7 @@ export type Field = {
   value?: string | number;
   options?: { v: string; t: string }[];
   emojis?: string[]; // when set, render a tappable emoji-picker grid instead of an input
+  colors?: string[]; // when set, render a color-swatch picker instead of an input
 };
 
 // Bottom-sheet form modal — the React equivalent of the prototype's openForm().
@@ -88,7 +89,20 @@ export function FormModal({
         {fields.map((f, i) => (
           <div className="field" key={i}>
             <label>{f.label}</label>
-            {f.emojis ? (
+            {f.colors ? (
+              <div className="color-grid">
+                {f.colors.map((c) => (
+                  <button
+                    type="button"
+                    key={c}
+                    aria-label={c}
+                    className={"color-opt" + (String(vals[i]) === c ? " sel" : "")}
+                    style={{ background: c }}
+                    onClick={() => set(i, c)}
+                  />
+                ))}
+              </div>
+            ) : f.emojis ? (
               <div className="emoji-grid">
                 {f.emojis.map((em) => (
                   <button

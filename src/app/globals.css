@@ -126,6 +126,12 @@ nav.tabs button.active{color:var(--brand); background:#f3efff}
   background:transparent; cursor:pointer; transition:transform .08s}
 .emoji-opt:active{transform:scale(.9)}
 .emoji-opt.sel{border-color:var(--brand); background:#efeaff}
+/* color-swatch picker (add-a-kid) */
+.color-grid{display:flex; flex-wrap:wrap; gap:12px; padding:12px; background:#fbfaff; border:2px solid #e8e4f5; border-radius:12px}
+.color-opt{width:34px; height:34px; border-radius:50%; border:none; padding:0; cursor:pointer;
+  box-shadow:0 0 0 2px #fff, 0 0 0 3px #e8e4f5; transition:transform .08s}
+.color-opt:active{transform:scale(.9)}
+.color-opt.sel{box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--ink)}
 /* check-in bar self-dissipates after the child taps Check in */
 @keyframes dissipate{
   0%{opacity:1; transform:scale(1)}

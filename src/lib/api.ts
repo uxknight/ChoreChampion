@@ -117,6 +117,9 @@ export const approveDevice = (deviceId: string, approved = true) =>
   rpc("approve_device", { p_device_id: deviceId, p_approved: approved });
 export const addKid = (name: string, emoji: string, color: string, mode: string) =>
   rpc("add_kid", { p_name: name, p_emoji: emoji, p_color: color, p_mode: mode });
+export const updateKid = (kidId: string, name: string, emoji: string, color: string) =>
+  rpc("update_kid", { p_kid_id: kidId, p_name: name, p_emoji: emoji, p_color: color });
+export const deleteKid = (kidId: string) => rpc("delete_kid", { p_kid_id: kidId });
 
 // The family invite code (readable by any family member via RLS).
 export async function getFamilyCode(): Promise<string> {

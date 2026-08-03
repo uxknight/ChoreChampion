@@ -299,4 +299,28 @@ begin
   perform _ok((res->>'earned')::numeric = 2, 'rating the done chore pays out');
 end $$;
 
+-- =====================================================================
+-- Test 11: parent can edit + remove kids; kids cannot
+-- =====================================================================
+do $$
+declare kidid uuid; ok boolean;
+begin
+  perform _login(_upar());
+  select id into kidid from profiles where family_id=_fam() and role='kid' and name='Slavia' limit 1;
+  perform update_kid(kidid, 'Slavia2', '🐼', '#123456');
+  perform _ok((select name from profiles where id=kidid)='Slavia2'
+          and (select emoji from profiles where id=kidid)='🐼', 'parent can edit a kid name/emoji');
+
+  perform _login(_uvera()); -- switch OUTSIDE the try blocks so a caught error doesn't revert it
+  begin perform update_kid(kidid, 'Hacked', '💀', '#000000'); ok:=false;
+  exception when others then ok:=true; end;
+  perform _ok(ok, 'a kid cannot edit a kid');
+  begin perform delete_kid(kidid); ok:=false; exception when others then ok:=true; end;
+  perform _ok(ok, 'a kid cannot delete a kid');
+
+  perform _login(_upar());
+  perform delete_kid(kidid);
+  perform _ok((select count(*) from profiles where id=kidid)=0, 'parent can remove a kid (cascades)');
+end $$;
+
 select '========== ALL ACCEPTANCE TESTS PASSED ==========' as result;

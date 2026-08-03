@@ -6,10 +6,10 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import * as api from "@/lib/api";
 import { friendlyError } from "@/lib/api";
 import { money as fmtMoney, starStr, half } from "@/lib/format";
-import { FREQ_OPTIONS, ANIMAL_EMOJIS, randomAnimal } from "@/lib/format";
+import { FREQ_OPTIONS, ANIMAL_EMOJIS, randomAnimal, VIBRANT_COLORS, randomColor, CHORE_EMOJIS } from "@/lib/format";
 
 type ModalState =
-  | { kind: "kid" }
+  | { kind: "kid"; id?: string }
   | { kind: "chore"; id?: string }
   | { kind: "deduction"; id?: string }
   | { kind: "reward"; id?: string }
@@ -113,6 +113,20 @@ export function AdminView() {
                 <div className="grow">
                   {k.emoji} {k.name} <span className="muted">· {k.mode}</span>
                 </div>
+                <button className="btn ghost tiny" onClick={() => setModal({ kind: "kid", id: k.id })}>
+                  ✎
+                </button>
+                <button
+                  className="btn ghost tiny"
+                  onClick={async () =>
+                    (await confirm(`Remove ${k.name}? This deletes their history and can’t be undone.`, {
+                      confirmLabel: "Remove kid",
+                      danger: true,
+                    })) && run(() => api.deleteKid(k.id), `${k.name} removed`)
+                  }
+                >
+                  🗑
+                </button>
               </div>
             ))
           ) : (
@@ -394,16 +408,20 @@ function CatalogModal({
   onError: (e: unknown) => void;
 }) {
   const { snap, toast } = useApp();
-  const kidEmoji = useMemo(() => randomAnimal(), []); // stable random default per open
+  const kidEmoji = useMemo(() => randomAnimal(), []); // stable random defaults per open
+  const kidColor = useMemo(() => randomColor(), []);
 
   if (modal.kind === "kid") {
-    return (
-      <FormModal
-        title="Add a kid"
-        fields={[
-          { label: "Name", value: "" },
-          { label: "Pick an animal", emojis: ANIMAL_EMOJIS, value: kidEmoji },
-          { label: "Color (hex)", value: "#7c5cff" },
+    const k = modal.id ? snap.kids.find((x) => x.id === modal.id) : undefined;
+    const baseFields: Field[] = [
+      { label: "Name", value: k?.name ?? "" },
+      { label: "Pick an animal", emojis: ANIMAL_EMOJIS, value: k?.emoji ?? kidEmoji },
+      { label: "Pick a color", colors: VIBRANT_COLORS, value: k?.color ?? kidColor },
+    ];
+    const fields: Field[] = k
+      ? baseFields
+      : [
+          ...baseFields,
           {
             label: "Track",
             options: [
@@ -412,12 +430,20 @@ function CatalogModal({
             ],
             value: "points",
           },
-        ]}
+        ];
+    return (
+      <FormModal
+        title={k ? "Edit kid" : "Add a kid"}
+        fields={fields}
         onCancel={onClose}
         onSave={async (v) => {
           if (!v[0]) return toast("Need a name.");
           try {
-            await api.addKid(String(v[0]), String(v[1]) || "🙂", String(v[2]) || "#7c5cff", String(v[3]));
+            if (k) {
+              await api.updateKid(k.id, String(v[0]), String(v[1]) || "🙂", String(v[2]) || "#7c5cff");
+            } else {
+              await api.addKid(String(v[0]), String(v[1]) || "🙂", String(v[2]) || "#7c5cff", String(v[3]));
+            }
             await afterSave();
           } catch (e) {
             onError(e);
@@ -430,7 +456,7 @@ function CatalogModal({
   if (modal.kind === "chore") {
     const c = modal.id ? snap.chores.find((x) => x.id === modal.id) : undefined;
     const fields: Field[] = [
-      { label: "Emoji", value: c?.emoji || "🧩" },
+      { label: "Pick an emoji", emojis: CHORE_EMOJIS, value: c?.emoji || "🧩" },
       { label: "Description", value: c?.title ?? "" },
       { label: "Base points", type: "number", step: "0.5", value: c?.base_pts ?? 1 },
       { label: "Frequency", options: FREQ_OPTIONS, value: c?.freq ?? "daily" },
