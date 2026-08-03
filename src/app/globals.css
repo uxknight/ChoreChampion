@@ -119,3 +119,12 @@ nav.tabs button.active{color:var(--brand); background:#f3efff}
 .stack{display:flex; flex-direction:column; gap:12px; width:100%; max-width:360px}
 .err{color:var(--bad); font-size:13px; font-weight:600}
 .avatar-pick{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
+/* check-in bar self-dissipates after the child taps Check in */
+@keyframes dissipate{
+  0%{opacity:1; transform:scale(1)}
+  55%{opacity:0; transform:scale(.96) translateY(-8px)}
+  100%{opacity:0; transform:scale(.96) translateY(-8px); max-height:0; margin-top:-12px; padding-top:0; padding-bottom:0}
+}
+.checkin-hero.dissipate{animation:dissipate .6s ease forwards; overflow:hidden}
+/* chores reveal when they appear after check-in */
+.reveal{animation:pop .4s ease}

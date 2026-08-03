@@ -72,7 +72,7 @@ export function AppShell() {
         ) : kid?.mode === "stickers" ? (
           <EllieHome kid={kid} money={money} />
         ) : tab === "home" ? (
-          <Home kid={kid} money={money} />
+          <Home key={kid.id} kid={kid} money={money} />
         ) : tab === "chores" ? (
           <Chores />
         ) : tab === "rewards" ? (
@@ -110,9 +110,22 @@ function cartoonStatus(snap: ReturnType<typeof useApp>["snap"], kidId: string): 
 }
 
 function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
-  const { snap, run } = useApp();
+  const { snap, burst, toast, refresh } = useApp();
   const s = snap.settings;
   const checked = snap.checkins.some((c) => c.kid_id === kid.id && c.occurred_on === snap.today);
+  const [dissipating, setDissipating] = useState(false);
+
+  async function handleCheckIn(e: React.MouseEvent) {
+    burst(e, ["👋", "☀️", "⭐"]);
+    setDissipating(true); // start the dissipate animation; chores reveal on animation end
+    try {
+      await api.checkIn(kid.id);
+      toast("Checked in! Let’s see today’s chores.");
+    } catch (err) {
+      setDissipating(false);
+      toast(api.friendlyError(err));
+    }
+  }
   const cs = cartoonStatus(snap, kid.id);
   const pend = snap.completions.filter((e) => e.kid_id === kid.id && e.status === "pending").length;
   const ratedWk = snap.completions.filter(
@@ -127,28 +140,28 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
 
   return (
     <>
-      <div className="checkin-hero">
-        <div className="row">
-          <div className="grow">
-            <div style={{ fontSize: 18, fontWeight: 800 }}>
-              {checked ? `You’re checked in, ${kid.name}! ${kid.emoji}` : `Good day, ${kid.name}! ${kid.emoji}`}
+      {!checked && (
+        <div
+          className={"checkin-hero" + (dissipating ? " dissipate" : "")}
+          onAnimationEnd={() => {
+            if (dissipating) void refresh(); // reveal chores as the bar finishes dissipating
+          }}
+        >
+          <div className="row">
+            <div className="grow">
+              <div style={{ fontSize: 18, fontWeight: 800 }}>
+                Good day, {kid.name}! {kid.emoji}
+              </div>
+              <div className="muted" style={{ marginTop: 2 }}>
+                Tap to start your day.
+              </div>
             </div>
-            <div className="muted" style={{ marginTop: 2 }}>
-              {checked ? "Go crush those chores." : "Tap to start your day."}
-            </div>
-          </div>
-          {checked ? (
-            <div style={{ fontSize: 34 }}>✅</div>
-          ) : (
-            <button
-              className="btn"
-              onClick={(e) => run(() => api.checkIn(kid.id), "Checked in! Let’s see today’s chores.", e, ["👋", "☀️", "⭐"])}
-            >
+            <button className="btn" onClick={handleCheckIn}>
               Check in ☀️
             </button>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="card">
         <div className="row" style={{ textAlign: "center" }}>
@@ -184,10 +197,12 @@ function Home({ kid, money }: { kid: Profile; money: (p: number) => string }) {
         </div>
       )}
 
-      <div className="card">
-        <h3>🎯 Up for grabs today</h3>
-        <ChoreList scope="today" />
-      </div>
+      {checked && (
+        <div className="card reveal">
+          <h3>🎯 Up for grabs today</h3>
+          <ChoreList scope="today" />
+        </div>
+      )}
 
       {ratedWk.length > 0 && (
         <div className="card">
