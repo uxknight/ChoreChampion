@@ -103,6 +103,8 @@ nav.tabs button.active{color:var(--brand); background:#f3efff}
 .rulelist b{color:var(--brand)}
 .adminrow{display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px dashed #eee; font-size:14px}
 .adminrow:last-child{border:none}
+.group-label{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px;
+  color:var(--brand); margin:14px 0 2px}
 .checkin-hero{background:linear-gradient(135deg,var(--brand),#a58bff); color:#fff; border-radius:var(--radius);
   padding:18px; box-shadow:var(--shadow)}
 .checkin-hero .muted{color:#e4dcff}

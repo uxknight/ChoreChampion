@@ -328,28 +328,45 @@ export function AdminView() {
         )}
       </div>
 
-      {/* manage chores */}
+      {/* manage chores, grouped by frequency */}
       <div className="card">
         <h3>🧹 Paid chores</h3>
-        {snap.chores.map((c) => (
-          <div className="adminrow" key={c.id}>
-            <div className="grow">
-              {c.emoji} {c.title}
-              <div className="muted">
-                {c.base_pts} pts · {c.freq}
+        {(
+          [
+            { freq: "twice_daily", label: "🍽️ Twice a day" },
+            { freq: "daily", label: "☀️ Daily" },
+            { freq: "weekly", label: "🗓️ Weekly" },
+            { freq: "biweekly", label: "📅 Biweekly" },
+            { freq: "ondemand", label: "🔔 Hotspots (on demand)" },
+          ] as const
+        ).map((g) => {
+          const rows = snap.chores.filter((c) => c.freq === g.freq);
+          if (!rows.length) return null;
+          return (
+            <div key={g.freq}>
+              <div className="group-label">
+                {g.label} · {rows.length}
               </div>
+              {rows.map((c) => (
+                <div className="adminrow" key={c.id}>
+                  <div className="grow">
+                    {c.emoji} {c.title}
+                    <div className="muted">{c.base_pts} pts</div>
+                  </div>
+                  <button className="btn ghost tiny" onClick={() => setModal({ kind: "chore", id: c.id })}>
+                    ✎
+                  </button>
+                  <button
+                    className="btn ghost tiny"
+                    onClick={async () => (await confirm("Delete this chore?", { danger: true })) && run(() => api.softDelete("chores", c.id))}
+                  >
+                    🗑
+                  </button>
+                </div>
+              ))}
             </div>
-            <button className="btn ghost tiny" onClick={() => setModal({ kind: "chore", id: c.id })}>
-              ✎
-            </button>
-            <button
-              className="btn ghost tiny"
-              onClick={async () => (await confirm("Delete this chore?", { danger: true })) && run(() => api.softDelete("chores", c.id))}
-            >
-              🗑
-            </button>
-          </div>
-        ))}
+          );
+        })}
         <button className="btn ghost small" style={{ marginTop: 8 }} onClick={() => setModal({ kind: "chore" })}>
           ＋ Add paid chore
         </button>
