@@ -28,6 +28,10 @@ create index if not exists bonus_events_kid_week_idx on bonus_events(kid_id, wee
 alter table bonus_rules  enable row level security;
 alter table bonus_events enable row level security;
 
+drop policy if exists fam_read   on bonus_rules;
+drop policy if exists parent_ins on bonus_rules;
+drop policy if exists parent_upd on bonus_rules;
+drop policy if exists fam_read   on bonus_events;
 create policy fam_read   on bonus_rules  for select using (family_id = current_family_id());
 create policy parent_ins on bonus_rules  for insert with check (is_parent() and family_id = current_family_id());
 create policy parent_upd on bonus_rules  for update using (is_parent() and family_id = current_family_id())
