@@ -430,4 +430,45 @@ begin
   perform _ok(ok, 'a kid cannot admin-cancel a completion');
 end $$;
 
+-- =====================================================================
+-- Test 17: shared / team chore — multiple kids join, points split on rating
+-- =====================================================================
+do $$
+declare ch uuid; cv completions; cs completions; ok boolean;
+begin
+  -- recreate Slavia (Test 11 removed her) so we have two points kids
+  insert into profiles(id, family_id, name, emoji, color, role, mode, sort)
+    values (_pslav(), _fam(), 'Slavia', '🐯', '#ff8a3d', 'kid', 'points', 2)
+    on conflict (id) do update set role='kid', mode='points';
+  insert into device_registrations(family_id, kid_id, auth_user_id, approved)
+    values (_fam(), _pslav(), _uslav(), true)
+    on conflict (auth_user_id) do update set kid_id=excluded.kid_id, approved=true;
+
+  update profiles set week=0, quality_streak=0 where id in (_pvera(), _pslav());
+  -- make a 3-pt weekly chore a team chore
+  select id into ch from chores where family_id=_fam() and freq='weekly' and base_pts=3 limit 1;
+  update chores set shared=true where id=ch;
+  delete from completions where chore_id=ch;
+
+  -- both kids join (no household limit for shared)
+  perform _login(_uvera()); cv := claim_chore(ch);
+  perform _login(_uslav()); cs := claim_chore(ch);
+  perform _ok((select count(*) from completions where chore_id=ch)=2, 'two kids can join a shared chore');
+
+  -- same kid cannot join twice
+  begin perform _login(_uvera()); perform claim_chore(ch); ok:=false; exception when others then ok:=true; end;
+  perform _ok(ok, 'a kid cannot join the same shared chore twice');
+
+  -- both mark done, parent rates once (via either completion) -> split 3 / 2 = 1.5 base, ×1.5 for 3★
+  perform _login(_uvera()); cv := mark_done(cv.id);
+  perform _login(_uslav()); cs := mark_done(cs.id);
+  perform _login(_upar());
+  perform rate_completion(cv.id, 3);
+  perform _ok((select earned from completions where id=cv.id)=2.5
+          and (select earned from completions where id=cs.id)=2.5, 'shared points split: 3/2 × 1.5★ = 2.5 each');
+  perform _ok((select status from completions where id=cs.id)='rated', 'rating a shared task rates all participants');
+  perform _ok((select week from profiles where id=_pvera())=2.5
+          and (select week from profiles where id=_pslav())=2.5, 'each kid gets their split into week');
+end $$;
+
 select '========== ALL ACCEPTANCE TESTS PASSED ==========' as result;

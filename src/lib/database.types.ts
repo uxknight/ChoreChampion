@@ -170,6 +170,7 @@ export type Database = {
           family_id: string
           freq: string
           id: string
+          shared: boolean
           sort: number
           title: string
         }
@@ -182,6 +183,7 @@ export type Database = {
           family_id: string
           freq: string
           id?: string
+          shared?: boolean
           sort?: number
           title: string
         }
@@ -194,6 +196,7 @@ export type Database = {
           family_id?: string
           freq?: string
           id?: string
+          shared?: boolean
           sort?: number
           title?: string
         }
@@ -862,6 +865,10 @@ export type Database = {
         Args: { p_delta?: number; p_kid_id: string }
         Returns: number
       }
+      admin_cancel_completion: {
+        Args: { p_completion_id: string }
+        Returns: undefined
+      }
       allocate_to_goal: {
         Args: { p_amount: number; p_goal_id: string }
         Returns: Json
@@ -876,6 +883,14 @@ export type Database = {
       award_bonus: {
         Args: { p_kid_id: string; p_rule_id: string }
         Returns: Json
+      }
+      award_points: {
+        Args: { p_amount: number; p_kid_id: string; p_reason?: string }
+        Returns: Json
+      }
+      cancel_claim: {
+        Args: { p_completion_id: string; p_kid_id?: string }
+        Returns: undefined
       }
       cartoon_status: { Args: { p_day?: string }; Returns: string }
       check_in: { Args: { p_kid_id?: string }; Returns: undefined }

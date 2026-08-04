@@ -64,10 +64,10 @@ export function ChoreList({ scope }: { scope: "today" | "weekly" }) {
 
         if (mine && mine.status === "rated")
           nodes.push(<span key="mine" className="chip green">{starStr(mine.stars)} You +{mine.earned}</span>);
-        if (used < limit)
+        if (c.shared ? !mine : used < limit)
           nodes.push(
             <button key="onit" className="btn small onit" onClick={(e) => onIt(e, c.id)}>
-              On it! ✋
+              {c.shared ? "Join! 🙌" : "On it! ✋"}
             </button>
           );
 
@@ -81,7 +81,12 @@ export function ChoreList({ scope }: { scope: "today" | "weekly" }) {
             <div className="grow">
               <div className="ttl">{c.title}</div>
               <div className="meta">
-                {FREQ_LABEL[c.freq]} · <b style={{ color: "var(--brand)" }}>★★★ pays {half(c.base_pts * mult[2])}</b>
+                {FREQ_LABEL[c.freq]} ·{" "}
+                {c.shared ? (
+                  <b style={{ color: "var(--brand)" }}>👥 team — points split</b>
+                ) : (
+                  <b style={{ color: "var(--brand)" }}>★★★ pays {half(c.base_pts * mult[2])}</b>
+                )}
               </div>
             </div>
             <div className="row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -128,7 +133,10 @@ export function InProgress() {
             <span className="cem">{c.emoji || "🧩"}</span>
             <div className="grow">
               <div className="ttl">{c.title}</div>
-              <div className="meta">{FREQ_LABEL[c.freq]}</div>
+              <div className="meta">
+                {FREQ_LABEL[c.freq]}
+                {c.shared ? " · 👥 team (points split)" : ""}
+              </div>
             </div>
             {e.status === "claimed" ? (
               <div className="row" style={{ gap: 6, justifyContent: "flex-end" }}>

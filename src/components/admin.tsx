@@ -173,42 +173,91 @@ export function AdminView() {
           🔍 Quality checks pending <span className="chip red">{pending.length}</span>
         </h3>
         {pending.length ? (
-          pending.map((e) => {
-            const k = kidById(e.kid_id);
-            return (
-              <div key={e.id} style={{ padding: "10px 0", borderBottom: "1px dashed #eee" }}>
-                <div className="row">
-                  <div className="grow">
-                    <div className="ttl" style={{ fontWeight: 700, fontSize: 14 }}>
-                      {e.title_snapshot}
+          (() => {
+            const choreById = (id: string) => snap.chores.find((c) => c.id === id);
+            const items: ({ shared: true; chore: NonNullable<ReturnType<typeof choreById>>; first: (typeof pending)[number]; participants: typeof pending } | { shared: false; e: (typeof pending)[number] })[] = [];
+            const seen = new Set<string>();
+            for (const e of pending) {
+              const ch = choreById(e.chore_id);
+              if (ch?.shared) {
+                if (seen.has(e.chore_id)) continue;
+                seen.add(e.chore_id);
+                items.push({ shared: true, chore: ch, first: e, participants: pending.filter((p) => p.chore_id === e.chore_id) });
+              } else items.push({ shared: false, e });
+            }
+            return items.map((it) => {
+              if (it.shared) {
+                const N = it.participants.length;
+                const names = it.participants.map((p) => kidById(p.kid_id)?.name).join(", ");
+                return (
+                  <div key={it.chore.id} style={{ padding: "10px 0", borderBottom: "1px dashed #eee" }}>
+                    <div className="row">
+                      <div className="grow">
+                        <div className="ttl" style={{ fontWeight: 700, fontSize: 14 }}>
+                          {it.chore.emoji} {it.chore.title} <span className="chip">👥 team · split {N}</span>
+                        </div>
+                        <div className="meta">{names} · base {it.chore.base_pts} pts</div>
+                      </div>
+                      <button
+                        className="btn ghost tiny"
+                        onClick={async () =>
+                          (await confirm(`Cancel "${it.chore.title}" for the whole team?`, { confirmLabel: "Cancel task", danger: true })) &&
+                          run(async () => {
+                            for (const p of it.participants) await api.adminCancelCompletion(p.id);
+                          }, "Task cancelled")
+                        }
+                      >
+                        ✕ Cancel
+                      </button>
                     </div>
-                    <div className="meta">
-                      {k?.emoji} {k?.name} · {e.occurred_on} · base {e.pts_snapshot} pts
+                    <div className="ratebtns">
+                      {[1, 2, 3].map((st) => (
+                        <button key={st} onClick={(ev) => doRate(ev, it.first.id, st, "The team")}>
+                          {starStr(st).slice(0, 3)}
+                          <small>{half((it.chore.base_pts / N) * mult[st - 1])} each</small>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <button
-                    className="btn ghost tiny"
-                    onClick={async () =>
-                      (await confirm(`Cancel "${e.title_snapshot}"? It won't count and no points are awarded.`, {
-                        confirmLabel: "Cancel task",
-                        danger: true,
-                      })) && run(() => api.adminCancelCompletion(e.id), "Task cancelled")
-                    }
-                  >
-                    ✕ Cancel
-                  </button>
-                </div>
-                <div className="ratebtns">
-                  {[1, 2, 3].map((st) => (
-                    <button key={st} onClick={(ev) => doRate(ev, e.id, st, k?.name ?? "")}>
-                      {starStr(st).slice(0, 3)}
-                      <small>{half(e.pts_snapshot * mult[st - 1])} pts</small>
+                );
+              }
+              const e = it.e;
+              const k = kidById(e.kid_id);
+              return (
+                <div key={e.id} style={{ padding: "10px 0", borderBottom: "1px dashed #eee" }}>
+                  <div className="row">
+                    <div className="grow">
+                      <div className="ttl" style={{ fontWeight: 700, fontSize: 14 }}>
+                        {e.title_snapshot}
+                      </div>
+                      <div className="meta">
+                        {k?.emoji} {k?.name} · {e.occurred_on} · base {e.pts_snapshot} pts
+                      </div>
+                    </div>
+                    <button
+                      className="btn ghost tiny"
+                      onClick={async () =>
+                        (await confirm(`Cancel "${e.title_snapshot}"? It won't count and no points are awarded.`, {
+                          confirmLabel: "Cancel task",
+                          danger: true,
+                        })) && run(() => api.adminCancelCompletion(e.id), "Task cancelled")
+                      }
+                    >
+                      ✕ Cancel
                     </button>
-                  ))}
+                  </div>
+                  <div className="ratebtns">
+                    {[1, 2, 3].map((st) => (
+                      <button key={st} onClick={(ev) => doRate(ev, e.id, st, k?.name ?? "")}>
+                        {starStr(st).slice(0, 3)}
+                        <small>{half(e.pts_snapshot * mult[st - 1])} pts</small>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            });
+          })()
         ) : (
           <div className="muted">Nothing waiting. ✨</div>
         )}
@@ -537,9 +586,17 @@ function CatalogModal({
     const fields: Field[] = [
       { label: "Pick an emoji", emojiPicker: true, value: c?.emoji || "🧩" },
       { label: "Chore name", value: c?.title ?? "" },
-      { label: "Description (shown when a kid taps ?)", type: "textarea", value: c?.description ?? "" },
+      { label: "Description / instructions", type: "textarea", value: c?.description ?? "" },
       { label: "Base points", type: "number", step: "0.5", value: c?.base_pts ?? 1 },
       { label: "Frequency", options: FREQ_OPTIONS, value: c?.freq ?? "daily" },
+      {
+        label: "Team chore?",
+        options: [
+          { v: "no", t: "No — one kid does it" },
+          { v: "yes", t: "Yes — kids team up & split the points" },
+        ],
+        value: c?.shared ? "yes" : "no",
+      },
     ];
     return (
       <FormModal
@@ -551,7 +608,7 @@ function CatalogModal({
           try {
             await api.upsertChore({
               id: modal.id, emoji: String(v[0]), title: String(v[1]), description: String(v[2]),
-              base_pts: Number(v[3]), freq: String(v[4]), family_id: familyId,
+              base_pts: Number(v[3]), freq: String(v[4]), shared: String(v[5]) === "yes", family_id: familyId,
             });
             await afterSave();
           } catch (e) {
