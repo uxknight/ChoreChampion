@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useApp } from "@/components/provider";
 import { ChoreList, InProgress } from "@/components/choreList";
 import { AdminView } from "@/components/admin";
+import { Celebration } from "@/components/Celebration";
 import * as api from "@/lib/api";
 import { money as fmtMoney, starStr } from "@/lib/format";
 import type { CartoonState, Profile } from "@/lib/types";
@@ -103,6 +104,8 @@ export function AppShell() {
           </button>
         ))}
       </nav>
+
+      <Celebration />
     </>
   );
 }

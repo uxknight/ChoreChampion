@@ -471,4 +471,36 @@ begin
           and (select week from profiles where id=_pslav())=2.5, 'each kid gets their split into week');
 end $$;
 
+-- =====================================================================
+-- Test 18: point alerts — awards/deductions enqueue a per-kid alert; mark seen
+-- =====================================================================
+do $$
+declare rule uuid; aid uuid;
+begin
+  delete from point_alerts where family_id=_fam();
+  update profiles set week=10, week_deducted=0 where id=_pvera();
+  perform _login(_upar());
+
+  perform award_points(_pvera(), 3, 'Great helper');
+  perform _ok((select count(*) from point_alerts where kid_id=_pvera() and kind='award' and delta=3 and not seen)=1,
+              'award enqueues an unseen award alert');
+
+  select id into rule from deduction_rules where family_id=_fam() and pts=2 limit 1;
+  perform apply_deduction(rule);
+  perform _ok((select count(*) from point_alerts where kid_id=_pvera() and kind='deduction' and delta=-2 and not seen)=1,
+              'deduction enqueues an unseen deduction alert');
+
+  -- kid can mark their own alert seen
+  select id into aid from point_alerts where kid_id=_pvera() and kind='award' limit 1;
+  perform _login(_uvera());
+  perform mark_alert_seen(aid);
+  perform _ok((select seen from point_alerts where id=aid)=true, 'a kid can mark their own alert seen');
+
+  -- a kid cannot mark another kid's alert seen
+  perform _login(_uslav());
+  select id into aid from point_alerts where kid_id=_pvera() and kind='deduction' limit 1;
+  perform mark_alert_seen(aid);
+  perform _ok((select seen from point_alerts where id=aid)=false, 'a kid cannot mark another kid''s alert seen');
+end $$;
+
 select '========== ALL ACCEPTANCE TESTS PASSED ==========' as result;

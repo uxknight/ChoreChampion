@@ -12,6 +12,7 @@ export type Goal = T["goals"]["Row"];
 export type Settings = T["settings"]["Row"];
 export type BonusRule = T["bonus_rules"]["Row"];
 export type BonusEvent = T["bonus_events"]["Row"];
+export type PointAlert = T["point_alerts"]["Row"];
 
 export type CartoonState = "none" | "pending" | "earned" | "missed";
 
@@ -49,6 +50,7 @@ export type FamilySnapshot = {
   deductionEvents: DeductionEvent[];
   bonusRules: BonusRule[];
   bonusEvents: BonusEvent[];
+  pointAlerts: PointAlert[];
   goals: Goal[];
   redemptions: Redemption[];
   completions: Completion[];

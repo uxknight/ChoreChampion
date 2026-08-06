@@ -59,6 +59,7 @@ type RawSnapshot = {
   deduction_events: FamilySnapshot["deductionEvents"];
   bonus_rules: FamilySnapshot["bonusRules"];
   bonus_events: FamilySnapshot["bonusEvents"];
+  point_alerts: FamilySnapshot["pointAlerts"];
   goals: FamilySnapshot["goals"];
   redemptions: FamilySnapshot["redemptions"];
   completions: FamilySnapshot["completions"];
@@ -89,6 +90,7 @@ export async function loadSnapshot(): Promise<FamilySnapshot | null> {
     deductionEvents: r.deduction_events ?? [],
     bonusRules: r.bonus_rules ?? [],
     bonusEvents: r.bonus_events ?? [],
+    pointAlerts: r.point_alerts ?? [],
     goals: r.goals ?? [],
     redemptions: r.redemptions ?? [],
     completions: r.completions ?? [],
@@ -111,6 +113,7 @@ export const startGoal = (rewardId: string, kidId: string) => rpc("start_goal", 
 export const allocateToGoal = (goalId: string, amount: number) =>
   rpc<{ added: number; saved: number; target: number; reached: boolean }>("allocate_to_goal", { p_goal_id: goalId, p_amount: amount });
 export const finishGoal = (goalId: string) => rpc("finish_goal", { p_goal_id: goalId });
+export const markAlertSeen = (alertId: string) => rpc("mark_alert_seen", { p_id: alertId });
 
 // ---- parent actions ----
 export const adminCancelCompletion = (completionId: string) => rpc("admin_cancel_completion", { p_completion_id: completionId });

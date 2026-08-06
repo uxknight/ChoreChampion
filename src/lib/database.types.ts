@@ -513,6 +513,54 @@ export type Database = {
           },
         ]
       }
+      point_alerts: {
+        Row: {
+          created_at: string
+          delta: number
+          family_id: string
+          id: string
+          kid_id: string
+          kind: string
+          seen: boolean
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          family_id: string
+          id?: string
+          kid_id: string
+          kind: string
+          seen?: boolean
+          title: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          family_id?: string
+          id?: string
+          kid_id?: string
+          kind?: string
+          seen?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_alerts_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_alerts_kid_id_fkey"
+            columns: ["kid_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           bank: number
@@ -947,6 +995,7 @@ export type Database = {
       is_biweekly_on: { Args: never; Returns: boolean }
       is_parent: { Args: never; Returns: boolean }
       iso_week_key: { Args: { d: string }; Returns: string }
+      mark_alert_seen: { Args: { p_id: string }; Returns: undefined }
       mark_done: {
         Args: { p_completion_id: string; p_kid_id?: string }
         Returns: {

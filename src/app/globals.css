@@ -122,6 +122,34 @@ nav.tabs button.active{color:var(--brand); background:#f3efff}
 .stack{display:flex; flex-direction:column; gap:12px; width:100%; max-width:360px}
 .err{color:var(--bad); font-size:13px; font-weight:600}
 .avatar-pick{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
+/* point-alert celebration overlay */
+.celebrate-overlay{position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center;
+  padding:24px; overflow:hidden; animation:cFade .35s ease}
+@keyframes cFade{from{opacity:0}to{opacity:1}}
+.celebrate-overlay.award{background:linear-gradient(135deg,#7c5cff,#ff5da2,#ff8a3d,#f5b301,#2bb673,#12c2e9);
+  background-size:400% 400%; animation:cFade .35s ease, cShift 5s ease infinite}
+@keyframes cShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.celebrate-overlay.deduct{background:radial-gradient(circle at 50% 30%, #b31217, #4a0d0f)}
+.celebrate-sky{position:absolute; inset:0; pointer-events:none}
+.celebrate-sky .rise{position:absolute; bottom:-50px; font-size:34px; opacity:.9;
+  animation-name:cRise; animation-timing-function:linear; animation-iteration-count:infinite}
+@keyframes cRise{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(-115vh) rotate(220deg)}}
+.celebrate-card{position:relative; z-index:1; background:rgba(255,255,255,.16); backdrop-filter:blur(6px);
+  border:2px solid rgba(255,255,255,.4); border-radius:28px; padding:28px 24px; max-width:360px; width:100%;
+  text-align:center; color:#fff; box-shadow:0 20px 60px rgba(0,0,0,.35); animation:cPop .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes cPop{0%{transform:scale(.5); opacity:0}100%{transform:scale(1); opacity:1}}
+.celebrate-face{font-size:76px; line-height:1; animation:cBob 1.4s ease-in-out infinite}
+@keyframes cBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.celebrate-delta{font-size:44px; font-weight:900; margin:6px 0; text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.celebrate-msg{font-size:20px; font-weight:800; margin-top:4px}
+.celebrate-sub{font-size:13px; opacity:.92; margin-top:4px}
+.celebrate-dance{font-size:40px; margin-top:10px; animation:cDance .8s ease-in-out infinite}
+@keyframes cDance{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}}
+.celebrate-btn{margin-top:18px; background:#fff; color:var(--brand); font-size:18px; padding:14px 22px}
+.celebrate-btn.red{color:var(--bad)}
+.celebrate-overlay.deduct .celebrate-card{background:rgba(0,0,0,.28); border-color:rgba(255,255,255,.25);
+  animation:cPop .5s cubic-bezier(.2,1.4,.4,1), cShake .5s ease .5s}
+@keyframes cShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 /* emoji picker (add-a-kid) */
 .emoji-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(42px,1fr)); gap:6px;
   max-height:184px; overflow:auto; padding:8px; background:#fbfaff; border:2px solid #e8e4f5; border-radius:12px}
